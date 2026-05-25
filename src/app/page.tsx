@@ -1,5 +1,6 @@
 'use client';
 import { useEffect } from 'react';
+import Image from 'next/image';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useGPSSnapping } from '@/hooks/useGPSSnapping';
 import { useCITSSignal } from '@/hooks/useCITSSignal';
@@ -112,13 +113,15 @@ function StatusBar({
         </span>
       </div>
 
-      {/* 앱 이름 */}
-      <span
-        className="font-vfd text-sm"
-        style={{ color: '#00ff88', textShadow: '0 0 8px #00ff88', letterSpacing: '0.2em' }}
-      >
-        WILLY-NAVI
-      </span>
+      {/* 앱 로고 */}
+      <Image
+        src="/icons/logo.png"
+        alt="willyNavi"
+        width={120}
+        height={28}
+        priority
+        style={{ objectFit: 'contain' }}
+      />
 
       {/* 스내핑 상태 */}
       <span className="font-vfd text-xs" style={{ color: '#004422' }}>
