@@ -113,14 +113,18 @@ function StatusBar({
         </span>
       </div>
 
-      {/* 앱 로고 */}
+      {/* 앱 로고 — invert(흰배경→검정) + screen(검정은 배경에 흡수, 로고는 밝게) */}
       <Image
         src="/icons/logo.png"
         alt="willyNavi"
         width={120}
         height={28}
         priority
-        style={{ objectFit: 'contain' }}
+        style={{
+          objectFit: 'contain',
+          filter: 'invert(1)',
+          mixBlendMode: 'screen',
+        }}
       />
 
       {/* 스내핑 상태 */}
