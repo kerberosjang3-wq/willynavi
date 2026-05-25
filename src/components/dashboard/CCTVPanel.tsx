@@ -20,7 +20,7 @@ export function CCTVPanel({ cctv }: CCTVPanelProps) {
       className="rounded-xl overflow-hidden shadow-2xl"
       style={{
         background: '#0a0a0a',
-        border: '2px solid #2a2a3a',
+        border: '1px solid var(--cyber-border)',
         boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
       }}
     >
@@ -32,13 +32,13 @@ export function CCTVPanel({ cctv }: CCTVPanelProps) {
           borderBottom: '1px solid #2a2a3a',
         }}
       >
-        <span className="font-vfd text-xs" style={{ color: '#00ff88', letterSpacing: '0.15em' }}>
-          ▶ CCTV LIVE
+        <span className="font-vfd text-xs" style={{ color: 'var(--cyber-cyan)', letterSpacing: '0.15em', textShadow: '0 0 6px #00d4ff66' }}>
+          ▶ LIVE
         </span>
-        <span className="font-vfd text-xs truncate max-w-[60%]" style={{ color: '#004422' }}>
+        <span className="font-vfd text-xs truncate max-w-[55%]" style={{ color: 'var(--cyber-cyan)', textShadow: '0 0 6px #00d4ff44' }}>
           {cctv?.name ?? '---'}
         </span>
-        <span className="font-vfd text-xs" style={{ color: '#004422' }}>
+        <span className="font-vfd text-xs" style={{ color: 'var(--cyber-amber)' }}>
           {cctv?.source ?? '---'}
         </span>
       </div>
@@ -70,7 +70,7 @@ export function CCTVPanel({ cctv }: CCTVPanelProps) {
           className="px-3 py-1"
           style={{ background: '#0d0d12', borderTop: '1px solid #1a1a24' }}
         >
-          <span className="font-vfd text-xs" style={{ color: '#004422' }}>
+          <span className="font-vfd text-xs" style={{ color: 'var(--cyber-cyan-dim)', letterSpacing: '0.1em' }}>
             {cctv.roadName}
           </span>
         </div>
