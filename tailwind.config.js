@@ -4,48 +4,69 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // ── 사이버 HUD 팔레트 ─────────────────────────────────────────────
+        cyber: {
+          bg:         '#080c14',
+          surface:    '#0d1623',
+          'surface-2':'#111d2e',
+          border:     '#1a2d4a',
+          'border-hi':'#1e3a5f',
+          cyan:       '#00d4ff',
+          'cyan-dim': '#003a55',
+          'cyan-glow':'#0088bb',
+          amber:      '#ff9d00',
+          'amber-dim':'#3a2200',
+          'amber-glow':'#cc7700',
+        },
+        gps:  { green: '#00ff88', dim: '#003322' },
+        sig: {
+          red:    '#ff3333',
+          'red-glow':  '#cc0000',
+          yellow: '#ffc107',
+          'yellow-glow':'#cc9900',
+          green:  '#00ee44',
+          'green-glow': '#009933',
+          off:    '#151f2e',
+        },
         vfd: {
-          glow: '#00ff88',
-          mid:  '#00cc66',
-          dim:  '#004422',
-          bg:   '#030a07',
-          bezel:'#0d1a0f',
-        },
-        lamp: {
-          'green-on':  '#00ee00',
-          'yellow-on': '#ffcc00',
-          'red-on':    '#ff2200',
-          off:         '#1c1c1c',
-          housing:     '#2a2a2a',
-        },
-        panel: {
-          dark:   '#0f0f14',
-          medium: '#1a1a24',
-          border: '#2e2e3e',
-          chrome: '#8a8a9a',
+          glow: '#00d4ff',
+          mid:  '#0099cc',
+          dim:  '#00263a',
+          bg:   '#060f1a',
         },
       },
       fontFamily: {
-        vfd: ['"Share Tech Mono"', '"Courier New"', 'monospace'],
+        vfd:     ['"Share Tech Mono"', '"Courier New"', 'monospace'],
+        display: ['"Orbitron"', '"Share Tech Mono"', 'monospace'],
       },
       keyframes: {
         flicker: {
-          '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.3' },
+          '0%,100%': { opacity: '1' },
+          '50%':     { opacity: '0.25' },
         },
-        pulse_glow: {
-          '0%, 100%': { textShadow: '0 0 8px #00ff88, 0 0 16px #00cc66' },
-          '50%': { textShadow: '0 0 20px #00ff88, 0 0 40px #00cc66, 0 0 60px #008844' },
+        glow_pulse: {
+          '0%,100%': { textShadow: '0 0 8px #00d4ff, 0 0 16px #0088bb' },
+          '50%':     { textShadow: '0 0 20px #00d4ff, 0 0 40px #0099cc, 0 0 60px #006688' },
         },
-        lamp_pulse: {
-          '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.7' },
+        amber_pulse: {
+          '0%,100%': { textShadow: '0 0 10px #ff9d00, 0 0 20px #cc7700' },
+          '50%':     { textShadow: '0 0 24px #ff9d00, 0 0 48px #ff7700' },
+        },
+        lamp_on: {
+          '0%,100%': { opacity: '1' },
+          '50%':     { opacity: '0.7' },
+        },
+        dot_blink: {
+          '0%,100%': { opacity: '1', transform: 'scale(1)' },
+          '50%':     { opacity: '0.3', transform: 'scale(0.85)' },
         },
       },
       animation: {
-        flicker: 'flicker 0.6s ease-in-out infinite',
-        pulse_glow: 'pulse_glow 2s ease-in-out infinite',
-        lamp_pulse: 'lamp_pulse 1s ease-in-out infinite',
+        flicker:     'flicker 0.55s ease-in-out infinite',
+        glow_pulse:  'glow_pulse 2.4s ease-in-out infinite',
+        amber_pulse: 'amber_pulse 1.8s ease-in-out infinite',
+        lamp_on:     'lamp_on 1s ease-in-out infinite',
+        dot_blink:   'dot_blink 0.5s ease-in-out infinite',
       },
     },
   },

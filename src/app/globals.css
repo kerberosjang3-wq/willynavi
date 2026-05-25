@@ -1,79 +1,98 @@
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ─── 전역 기본값 ─────────────────────────────────────────────────────────────── */
+/* ── 전역 변수 ─────────────────────────────────────────────────────────────── */
 :root {
-  --vfd-glow: #00ff88;
-  --vfd-mid: #00cc66;
-  --vfd-dim: #004422;
-  --vfd-bg: #030a07;
+  --cyber-bg:       #080c14;
+  --cyber-surface:  #0d1623;
+  --cyber-border:   #1a2d4a;
+  --cyber-cyan:     #00d4ff;
+  --cyber-cyan-dim: #003a55;
+  --cyber-amber:    #ff9d00;
+  --gps-green:      #00ff88;
   color-scheme: dark;
 }
 
-* {
-  box-sizing: border-box;
-}
+/* ── 기본 리셋 ─────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  /* 모바일에서 주소창 숨김 후 전체 높이 */
+html, body {
+  margin: 0; padding: 0;
   min-height: 100dvh;
-  background: #0a0a0e;
-  color: #e0e0e0;
+  background: var(--cyber-bg);
+  color: #c8d8e8;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
-  /* 운전 중 확대 방지 */
   touch-action: pan-y;
   user-select: none;
 }
 
-/* 스크롤바 숨김 (대시보드 UI) */
 ::-webkit-scrollbar { display: none; }
 
-/* ─── VFD 폰트 유틸 ───────────────────────────────────────────────────────────── */
-.font-vfd {
-  font-family: 'Share Tech Mono', 'Courier New', monospace;
-}
+/* ── 폰트 유틸 ─────────────────────────────────────────────────────────────── */
+.font-vfd     { font-family: 'Share Tech Mono', 'Courier New', monospace; }
+.font-display { font-family: 'Orbitron', 'Share Tech Mono', monospace; }
 
-/* ─── 스큐어모피즘 공통 ───────────────────────────────────────────────────────── */
-.skeu-panel {
-  background: linear-gradient(145deg, #1a1a24, #12121a);
-  border: 1px solid #2e2e3e;
-  border-radius: 16px;
+/* ── 글래스모피즘 패널 ─────────────────────────────────────────────────────── */
+.glass-panel {
+  background: rgba(13, 22, 35, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 212, 255, 0.12);
+  border-radius: 14px;
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
-/* ─── VFD 글로우 텍스트 ───────────────────────────────────────────────────────── */
-.vfd-glow {
-  color: var(--vfd-glow);
-  text-shadow:
-    0 0 8px var(--vfd-glow),
-    0 0 16px var(--vfd-mid),
-    0 0 32px #008844;
+/* ── 사이버 표면 패널 ──────────────────────────────────────────────────────── */
+.cyber-panel {
+  background: linear-gradient(145deg, #0e1928 0%, #080f1a 100%);
+  border: 1px solid var(--cyber-border);
+  border-radius: 14px;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
-/* ─── 안전 마진 경고 깜빡임 ──────────────────────────────────────────────────── */
+/* ── 사이버 시안 텍스트 글로우 ────────────────────────────────────────────── */
+.cyan-glow {
+  color: var(--cyber-cyan);
+  text-shadow: 0 0 8px #00d4ff, 0 0 18px #0088bb;
+}
+
+/* ── 앰버 숫자 글로우 ──────────────────────────────────────────────────────── */
+.amber-glow {
+  color: var(--cyber-amber);
+  text-shadow: 0 0 12px #ff9d00, 0 0 28px #cc7700;
+}
+
+/* ── 시안 테두리 하이라이트 (액센트 라인) ─────────────────────────────────── */
+.cyan-border-top {
+  border-top: 1px solid rgba(0, 212, 255, 0.25);
+}
+
+/* ── 신호 색상 ─────────────────────────────────────────────────────────────── */
+.sig-green  { color: #00ee44; text-shadow: 0 0 10px #00ee44, 0 0 22px #009933; }
+.sig-yellow { color: #ffc107; text-shadow: 0 0 10px #ffc107, 0 0 22px #cc9900; }
+.sig-red    { color: #ff3333; text-shadow: 0 0 10px #ff3333, 0 0 22px #cc0000; }
+
+/* ── 안전 경고 깜빡임 ──────────────────────────────────────────────────────── */
 @keyframes safety-blink {
-  0%, 100% { opacity: 1; color: #ff4400; }
-  50%       { opacity: 0.2; color: #ff2200; }
+  0%, 100% { opacity: 1;   color: #ff3333; text-shadow: 0 0 12px #ff3333, 0 0 28px #cc0000; }
+  50%      { opacity: 0.2; color: #ff1111; }
 }
+.safety-warning { animation: safety-blink 0.5s ease-in-out infinite; }
 
-.safety-warning {
-  animation: safety-blink 0.5s ease-in-out infinite;
-  text-shadow: 0 0 12px #ff4400, 0 0 24px #ff2200;
+/* ── 도트 신호 깜빡임 ──────────────────────────────────────────────────────── */
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.45; transform: scale(0.82); }
 }
+.dot-pulse { animation: dot-pulse 0.5s ease-in-out infinite; }
 
-/* ─── 운전 모드: 터치 영역 확대 ──────────────────────────────────────────────── */
-button, [role='button'] {
-  min-height: 44px;
-  min-width: 44px;
-}
+/* ── 터치 대상 최소 크기 ───────────────────────────────────────────────────── */
+button, [role='button'] { min-height: 44px; min-width: 44px; }
