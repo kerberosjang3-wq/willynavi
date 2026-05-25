@@ -42,7 +42,7 @@ export default function DashboardPage() {
         isWatching={isWatching}
         gpsError={gpsError}
         accuracy={position?.accuracy ?? null}
-        snappingCount={snapping.nearbyNodesCount}
+        cctvCount={snapping.nearbyCCTVCount}
       />
 
       {/* ── VFD 도로 정보 패널 ─────────────────────────────────────────── */}
@@ -102,12 +102,12 @@ function StatusBar({
   isWatching,
   gpsError,
   accuracy,
-  snappingCount,
+  cctvCount,
 }: {
   isWatching: boolean;
   gpsError: string | null;
   accuracy: number | null;
-  snappingCount: number;
+  cctvCount: number;
 }) {
   return (
     <div className="glass-panel flex justify-between items-center px-4 py-2">
@@ -141,9 +141,14 @@ function StatusBar({
         WILLY<span style={{ color: 'var(--cyber-amber)', margin: '0 1px' }}>·</span>NAVI
       </span>
 
-      <span className="font-vfd text-xs" style={{ color: 'var(--cyber-cyan-dim)' }}>
-        {snappingCount} NODE
-      </span>
+      <div className="flex flex-col items-end">
+        <span style={{ fontSize: '0.55rem', color: 'var(--cyber-cyan-dim)', letterSpacing: '0.08em', fontFamily: 'var(--font-vfd)' }}>
+          수신가능 CCTV
+        </span>
+        <span className="font-vfd" style={{ fontSize: '0.7rem', color: 'var(--cyber-cyan)', textShadow: '0 0 6px #00d4ff66' }}>
+          {cctvCount}
+        </span>
+      </div>
     </div>
   );
 }

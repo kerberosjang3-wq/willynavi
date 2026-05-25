@@ -77,6 +77,7 @@ export class SnappingService {
       nextIntersectionName,
       isInTriggerZone,
       nearbyNodesCount: cctvSpatial.length + signalSpatial.length,
+      nearbyCCTVCount: cctvSpatial.length,
     };
   }
 }

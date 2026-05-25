@@ -11,6 +11,7 @@ const EMPTY_STATE: SnappingState = {
   nextIntersectionName: '---',
   isInTriggerZone: false,
   nearbyNodesCount: 0,
+  nearbyCCTVCount: 0,
 };
 
 interface UseGPSSnappingOptions {

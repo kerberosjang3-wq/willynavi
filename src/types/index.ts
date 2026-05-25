@@ -57,6 +57,7 @@ export interface SnappingState {
   nextIntersectionName: string;
   isInTriggerZone: boolean;   // 교차로 트리거 존 진입 여부
   nearbyNodesCount: number;
+  nearbyCCTVCount: number;   // 반경 내 CCTV 수
 }
 
 // ─── 필터 설정 ─────────────────────────────────────────────────────────────────
