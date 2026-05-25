@@ -46,8 +46,8 @@ export function VFDDisplay({
       <div style={{ height: 1, background: 'var(--cyber-border)' }} />
 
       <div className="flex items-center justify-between pt-0.5">
-        <span className="font-vfd text-xs" style={{ color: 'var(--cyber-cyan-dim)', letterSpacing: '0.2em' }}>
-          SIG
+        <span className="font-vfd text-xs" style={{ color: 'var(--cyber-cyan-dim)', letterSpacing: '0.05em' }}>
+          신호등 정보
         </span>
         <span
           className={clsx('font-vfd text-xl tracking-widest', isSafetyWarning && 'safety-warning')}

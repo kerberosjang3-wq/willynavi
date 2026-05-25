@@ -67,17 +67,17 @@ export function useCITSSignal(
 }
 
 function buildDisplayText(signal: SignalNode | null, safetyWarning: boolean): string {
-  if (!signal) return '신호 없음';
+  if (!signal) return '신호등 정보없음';
   if (safetyWarning) return '신호 변경 주의';
 
-  const phaseCode: Record<SignalPhase, string> = {
-    GREEN: 'GRN',
-    YELLOW: 'YLW',
-    RED: 'RED',
-    UNKNOWN: '???',
+  const phaseName: Record<SignalPhase, string> = {
+    GREEN:   '녹색',
+    YELLOW:  '황색',
+    RED:     '적색',
+    UNKNOWN: '알수없음',
   };
 
-  const code = phaseCode[signal.currentPhase];
+  const name = phaseName[signal.currentPhase];
   const sec = String(signal.remainingSeconds).padStart(2, '0');
-  return `${code} ${sec}s`;
+  return `${name} ${sec}초`;
 }
