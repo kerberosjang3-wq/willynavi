@@ -1,6 +1,5 @@
 'use client';
 import { useEffect } from 'react';
-import Image from 'next/image';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useGPSSnapping } from '@/hooks/useGPSSnapping';
 import { useCITSSignal } from '@/hooks/useCITSSignal';
@@ -130,14 +129,17 @@ function StatusBar({
         </span>
       </div>
 
-      <Image
-        src="/icons/logo.png"
-        alt="willyNavi"
-        width={100}
-        height={24}
-        priority
-        style={{ objectFit: 'contain', filter: 'invert(1)', mixBlendMode: 'screen' }}
-      />
+      <span
+        className="font-display font-black"
+        style={{
+          fontSize: '0.85rem',
+          letterSpacing: '0.18em',
+          color: 'var(--cyber-cyan)',
+          textShadow: '0 0 8px #00d4ff, 0 0 20px #0088bb',
+        }}
+      >
+        WILLY<span style={{ color: 'var(--cyber-amber)', margin: '0 1px' }}>·</span>NAVI
+      </span>
 
       <span className="font-vfd text-xs" style={{ color: 'var(--cyber-cyan-dim)' }}>
         {snappingCount} NODE
