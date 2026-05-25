@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { Coordinate, GPSPosition } from '@/types';
-import { estimateHeading } from '@/utils/geo.utils';
+import { estimateHeading, haversineDistance } from '@/utils/geo.utils';
 
 interface GeolocationState {
   position: GPSPosition | null;
@@ -9,7 +9,12 @@ interface GeolocationState {
   isWatching: boolean;
 }
 
-// GPS heading 이 null 일 때 연속 좌표로 방향을 추정하는 위치 훅
+interface PrevSnapshot {
+  coord: Coordinate;
+  timestamp: number;
+}
+
+// GPS heading·speed 가 null 일 때 연속 좌표로 추정하는 위치 훅
 export function useGeolocation(): GeolocationState {
   const [state, setState] = useState<GeolocationState>({
     position: null,
@@ -17,7 +22,7 @@ export function useGeolocation(): GeolocationState {
     isWatching: false,
   });
 
-  const prevCoord = useRef<Coordinate | null>(null);
+  const prev = useRef<PrevSnapshot | null>(null);
   const watchId = useRef<number | null>(null);
 
   useEffect(() => {
@@ -29,34 +34,41 @@ export function useGeolocation(): GeolocationState {
     const options: PositionOptions = {
       enableHighAccuracy: true,
       timeout: 10_000,
-      maximumAge: 1_000,
+      maximumAge: 500,   // 0.5초 캐시 — 더 빠른 업데이트
     };
 
     watchId.current = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude: lat, longitude: lng, heading, speed, accuracy } = pos.coords;
         const curr: Coordinate = { lat, lng };
+        const now = pos.timestamp;
 
-        // 네이티브 heading 이 없으면 이전 좌표로 추정
-        let finalHeading: number | null = heading;
-        if ((finalHeading === null || finalHeading === undefined) && prevCoord.current) {
-          const dist = Math.hypot(lat - prevCoord.current.lat, lng - prevCoord.current.lng);
-          if (dist > 0.00001) {
-            finalHeading = estimateHeading(prevCoord.current, curr);
+        // ── heading 추정 ──────────────────────────────────────────────────────
+        let finalHeading: number | null =
+          heading !== null && heading !== undefined ? heading : null;
+
+        if (finalHeading === null && prev.current) {
+          const d = Math.hypot(lat - prev.current.coord.lat, lng - prev.current.coord.lng);
+          if (d > 0.00001) finalHeading = estimateHeading(prev.current.coord, curr);
+        }
+
+        // ── speed 추정 (coords.speed 가 null 인 iOS 등 대응) ─────────────────
+        let finalSpeed: number | null =
+          speed !== null && speed !== undefined ? speed : null;
+
+        if (finalSpeed === null && prev.current) {
+          const distM = haversineDistance(prev.current.coord, curr);
+          const dtSec = (now - prev.current.timestamp) / 1000;
+          // 최소 2m 이동 + 0.3초 이상 경과한 경우만 계산
+          if (distM >= 2 && dtSec >= 0.3) {
+            finalSpeed = distM / dtSec; // m/s
           }
         }
 
-        prevCoord.current = curr;
+        prev.current = { coord: curr, timestamp: now };
 
         setState({
-          position: {
-            lat,
-            lng,
-            heading: finalHeading,
-            speed: speed ?? null,
-            accuracy,
-            timestamp: pos.timestamp,
-          },
+          position: { lat, lng, heading: finalHeading, speed: finalSpeed, accuracy, timestamp: now },
           error: null,
           isWatching: true,
         });
@@ -68,9 +80,7 @@ export function useGeolocation(): GeolocationState {
     );
 
     return () => {
-      if (watchId.current !== null) {
-        navigator.geolocation.clearWatch(watchId.current);
-      }
+      if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
     };
   }, []);
 

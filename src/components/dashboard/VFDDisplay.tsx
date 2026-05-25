@@ -92,7 +92,9 @@ export function VFDDisplay({
             className="font-vfd text-3xl font-bold"
             style={{ color: '#00ff88', textShadow: '0 0 8px #00ff88, 0 0 20px #00cc66' }}
           >
-            {speedKmh !== null ? String(Math.round(speedKmh)).padStart(3, ' ') : '---'}
+            {speedKmh !== null && speedKmh >= 0
+              ? String(Math.round(speedKmh)).padStart(3, ' ')
+              : '---'}
           </span>
           <span className="font-vfd text-xs" style={{ color: '#004422' }}>km/h</span>
         </div>
