@@ -20,21 +20,25 @@ interface UseGPSSnappingOptions {
   useMock?: boolean;
 }
 
-// GPS 위치를 받아 스내핑 파이프라인을 실행하는 훅
 export function useGPSSnapping(
   position: GPSPosition | null,
   options: UseGPSSnappingOptions = {},
 ): SnappingState {
-  const { nodes, config, useMock = true } = options;
+  const { nodes, config, useMock = false } = options;
   const [state, setState] = useState<SnappingState>(EMPTY_STATE);
   const serviceRef = useRef<SnappingService | null>(null);
 
-  // 서비스 초기화 (config 변경 시 재생성)
+  // 서비스 초기화 — config 변경 시에만 재생성
   useEffect(() => {
     serviceRef.current = new SnappingService(config);
+  }, [config]);
+
+  // 노드 교체 — 노드 목록이 바뀔 때만 loadNodes 호출
+  useEffect(() => {
+    if (!serviceRef.current) return;
     const sourceNodes = useMock ? ALL_MOCK_NODES : (nodes ?? []);
     serviceRef.current.loadNodes(sourceNodes);
-  }, [config, nodes, useMock]);
+  }, [nodes, useMock]);
 
   // GPS 위치 변경 시 파이프라인 실행
   useEffect(() => {
@@ -42,9 +46,6 @@ export function useGPSSnapping(
       setState(EMPTY_STATE);
       return;
     }
-
-    // 정확도 5m 이하인 데이터는 노이즈로 간주하여 스킵하지 않음
-    // (GPS 정확도 100m 이하만 허용)
     if (position.accuracy > 100) return;
 
     const result = serviceRef.current.process(position);

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect } from 'react';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import { useNearbyNodes } from '@/hooks/useNearbyNodes';
 import { useGPSSnapping } from '@/hooks/useGPSSnapping';
 import { useCITSSignal } from '@/hooks/useCITSSignal';
 import { VFDDisplay } from '@/components/dashboard/VFDDisplay';
@@ -9,7 +10,8 @@ import { CCTVPanel } from '@/components/dashboard/CCTVPanel';
 
 export default function DashboardPage() {
   const { position, error: gpsError, isWatching } = useGeolocation();
-  const snapping = useGPSSnapping(position, { useMock: true });
+  const nearbyNodes = useNearbyNodes(position);
+  const snapping = useGPSSnapping(position, { nodes: nearbyNodes, useMock: false });
   const { signal, isSafetyWarning, displayText } = useCITSSignal(
     snapping.activeSignal?.intersectionId ?? null,
     snapping.isInTriggerZone,
