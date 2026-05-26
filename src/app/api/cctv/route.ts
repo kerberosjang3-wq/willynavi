@@ -28,21 +28,23 @@ export async function GET(req: NextRequest) {
 
   try {
     const params = new URLSearchParams({
-      apiKey,
-      type: 'its',
-      minX: searchParams.get('minX') ?? '126',
-      maxX: searchParams.get('maxX') ?? '128',
-      minY: searchParams.get('minY') ?? '37',
-      maxY: searchParams.get('maxY') ?? '38',
-      getType: 'json',
+      key: apiKey,
+      ReqType: '2',
+      MinX: searchParams.get('minX') ?? '126',
+      MaxX: searchParams.get('maxX') ?? '128',
+      MinY: searchParams.get('minY') ?? '37',
+      MaxY: searchParams.get('maxY') ?? '38',
+      type: 'ex',
     });
 
     const upstream = await fetch(
-      `https://openapi.its.go.kr:9443/cctvInfo?${params}`,
+      `http://openapi.its.go.kr/api/NCCTVInfo?${params}`,
       { next: { revalidate: 60 } },
     );
     const data = await upstream.json();
-    return NextResponse.json(data);
+    // 신규 API 응답 구조 정규화
+    const rows = data?.response?.data ?? data?.Data ?? data?.data ?? [];
+    return NextResponse.json({ response: { data: rows } });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 502 });
   }
