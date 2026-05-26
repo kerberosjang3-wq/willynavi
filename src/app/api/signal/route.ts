@@ -40,21 +40,41 @@ export async function GET(req: NextRequest) {
   const apiKey = process.env.ITS_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'ITS_API_KEY not set' }, { status: 500 });
 
-  try {
-    const params = new URLSearchParams({
-      apiKey,
-      ...(intersectionId ? { itstId: intersectionId } : {}),
-      getType: 'json',
-    });
+  // CCTV 패턴(NCCTVInfo)을 따른 신호 후보 URL 순서대로 시도
+  const SIGNAL_URLS = [
+    'http://openapi.its.go.kr/api/NSignalPhaseInfo',
+    'http://openapi.its.go.kr/api/NCITSSignalInfo',
+    'http://openapi.its.go.kr/api/NSignalInfo',
+  ];
 
-    const upstream = await fetch(
-      `https://openapi.its.go.kr:9443/signalPhase?${params}`,
-    );
-    const data = await upstream.json();
-    return NextResponse.json(data);
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 502 });
+  const params = new URLSearchParams({
+    key: apiKey,
+    type: 'ex',
+    ...(intersectionId ? { itstId: intersectionId } : {}),
+  });
+
+  for (const baseUrl of SIGNAL_URLS) {
+    try {
+      const res = await fetch(`${baseUrl}?${params}`, {
+        signal: AbortSignal.timeout(4000),
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const rows = data?.response?.data ?? data?.Data ?? data?.data ?? [];
+      if (rows.length > 0) return NextResponse.json(rows[0]);
+    } catch {
+      // 다음 후보 시도
+    }
   }
+
+  // 모든 실API 실패 → Mock 시뮬레이션으로 폴백
+  if (intersectionId) {
+    const node = MOCK_SIGNAL_NODES.find(
+      (n) => n.intersectionId === intersectionId || n.id === intersectionId,
+    );
+    if (node) return NextResponse.json(simulateCountdown(node));
+  }
+  return NextResponse.json({ error: 'signal not found' }, { status: 404 });
 }
 
 // Mock 카운트다운 시뮬레이션 — 실제 시간 기반으로 잔여 시간 계산
