@@ -72,8 +72,8 @@ function SignalDot({ color, active, pulse }: { color: DotColor; active: boolean;
     <div
       className={clsx(active && pulse && 'dot-pulse')}
       style={{
-        width: 16,
-        height: 16,
+        width: 48,
+        height: 48,
         borderRadius: '50%',
         background: active ? s.active : s.dim,
         boxShadow: active ? `0 0 8px ${s.active}, 0 0 18px ${s.glow}` : 'none',
