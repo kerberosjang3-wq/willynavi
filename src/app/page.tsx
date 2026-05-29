@@ -1,7 +1,7 @@
 'use client';
 import { useEffect } from 'react';
 import { useGeolocation } from '@/hooks/useGeolocation';
-import { useNearbyNodes } from '@/hooks/useNearbyNodes';
+import { useNearbyNodes, type ApiSource } from '@/hooks/useNearbyNodes';
 import { useGPSSnapping } from '@/hooks/useGPSSnapping';
 import { useCITSSignal } from '@/hooks/useCITSSignal';
 import { VFDDisplay } from '@/components/dashboard/VFDDisplay';
@@ -10,7 +10,7 @@ import { CCTVPanel } from '@/components/dashboard/CCTVPanel';
 
 export default function DashboardPage() {
   const { position, error: gpsError, isWatching } = useGeolocation();
-  const nearbyNodes = useNearbyNodes(position);
+  const { nodes: nearbyNodes, cctvSource, signalSource } = useNearbyNodes(position);
   const snapping = useGPSSnapping(position, { nodes: nearbyNodes, useMock: false });
   const { signal, isSafetyWarning, displayText } = useCITSSignal(
     snapping.activeSignal?.intersectionId ?? null,
@@ -45,6 +45,8 @@ export default function DashboardPage() {
         gpsError={gpsError}
         accuracy={position?.accuracy ?? null}
         cctvCount={snapping.nearbyCCTVCount}
+        cctvSource={cctvSource}
+        signalSource={signalSource}
       />
 
       {/* ── VFD 도로 정보 패널 ─────────────────────────────────────────── */}
@@ -100,16 +102,33 @@ export default function DashboardPage() {
 }
 
 // ─── 상태 표시줄 ────────────────────────────────────────────────────────────
+const SOURCE_LABEL: Record<ApiSource, string> = {
+  its:     'ITS',
+  gg:      'GITS',
+  mock:    'MOCK',
+  loading: '...',
+};
+const SOURCE_COLOR: Record<ApiSource, string> = {
+  its:     'var(--cyber-cyan)',
+  gg:      '#00ff88',
+  mock:    'var(--cyber-amber)',
+  loading: 'var(--cyber-border)',
+};
+
 function StatusBar({
   isWatching,
   gpsError,
   accuracy,
   cctvCount,
+  cctvSource,
+  signalSource,
 }: {
   isWatching: boolean;
   gpsError: string | null;
   accuracy: number | null;
   cctvCount: number;
+  cctvSource: ApiSource;
+  signalSource: ApiSource;
 }) {
   return (
     <div className="glass-panel flex justify-between items-center px-4 py-2">
@@ -143,13 +162,22 @@ function StatusBar({
         WILLY<span style={{ color: 'var(--cyber-amber)', margin: '0 1px' }}>·</span>NAVI
       </span>
 
-      <div className="flex flex-col items-end">
-        <span style={{ fontSize: '0.55rem', color: 'var(--cyber-cyan-dim)', letterSpacing: '0.08em', fontFamily: 'var(--font-vfd)' }}>
-          수신가능 CCTV
-        </span>
-        <span className="font-vfd" style={{ fontSize: '0.7rem', color: 'var(--cyber-cyan)', textShadow: '0 0 6px #00d4ff66' }}>
-          {cctvCount}
-        </span>
+      <div className="flex flex-col items-end gap-0.5">
+        <div className="flex items-center gap-1">
+          <span style={{ fontSize: '0.5rem', color: 'var(--cyber-cyan-dim)', fontFamily: 'inherit' }}>CCTV</span>
+          <span className="font-vfd" style={{ fontSize: '0.6rem', color: SOURCE_COLOR[cctvSource] }}>
+            {SOURCE_LABEL[cctvSource]}
+          </span>
+          <span className="font-vfd" style={{ fontSize: '0.6rem', color: 'var(--cyber-cyan)' }}>
+            {cctvCount}
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span style={{ fontSize: '0.5rem', color: 'var(--cyber-cyan-dim)', fontFamily: 'inherit' }}>신호</span>
+          <span className="font-vfd" style={{ fontSize: '0.6rem', color: SOURCE_COLOR[signalSource] }}>
+            {SOURCE_LABEL[signalSource]}
+          </span>
+        </div>
       </div>
     </div>
   );

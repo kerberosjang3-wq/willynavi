@@ -3,8 +3,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { CCTVNode, GPSPosition, SignalNode, TrafficNode } from '@/types';
 import { haversineDistance } from '@/utils/geo.utils';
 
-const REFETCH_THRESHOLD_M = 500; // 500m 이동 시 재조회
-const BBOX_DEG = 0.027;          // 약 3km 반경
+const REFETCH_THRESHOLD_M = 500;
+const BBOX_DEG = 0.027;
+
+export type ApiSource = 'its' | 'gg' | 'mock' | 'loading';
+
+export interface NearbyNodesResult {
+  nodes: TrafficNode[];
+  cctvSource: ApiSource;
+  signalSource: ApiSource;
+}
 
 interface RawCCTV {
   cctvid: string;
@@ -15,17 +23,16 @@ interface RawCCTV {
   roadsectionid?: string;
 }
 
-// GPS 위치 기반으로 주변 CCTV·신호 노드를 실 API에서 동적으로 조회하는 훅
-// 500m 이상 이동 시에만 재조회하여 API 호출 최소화
-export function useNearbyNodes(position: GPSPosition | null): TrafficNode[] {
+export function useNearbyNodes(position: GPSPosition | null): NearbyNodesResult {
   const [cctvNodes, setCctvNodes] = useState<CCTVNode[]>([]);
   const [signalNodes, setSignalNodes] = useState<SignalNode[]>([]);
+  const [cctvSource, setCctvSource] = useState<ApiSource>('loading');
+  const [signalSource, setSignalSource] = useState<ApiSource>('loading');
   const lastCoord = useRef<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     if (!position || position.accuracy > 100) return;
 
-    // 마지막 조회 위치에서 500m 이내 → 재조회 생략
     if (lastCoord.current) {
       const moved = haversineDistance(lastCoord.current, position);
       if (moved < REFETCH_THRESHOLD_M) return;
@@ -33,7 +40,7 @@ export function useNearbyNodes(position: GPSPosition | null): TrafficNode[] {
 
     lastCoord.current = { lat: position.lat, lng: position.lng };
 
-    const bbox = {
+    const q = {
       minX: String(position.lng - BBOX_DEG),
       maxX: String(position.lng + BBOX_DEG),
       minY: String(position.lat - BBOX_DEG),
@@ -45,7 +52,7 @@ export function useNearbyNodes(position: GPSPosition | null): TrafficNode[] {
     };
 
     // CCTV 조회
-    fetch(`/api/cctv?${new URLSearchParams({ minX: bbox.minX, maxX: bbox.maxX, minY: bbox.minY, maxY: bbox.maxY })}`)
+    fetch(`/api/cctv?${new URLSearchParams({ minX: q.minX, maxX: q.maxX, minY: q.minY, maxY: q.maxY })}`)
       .then((r) => r.json())
       .then((data) => {
         const rows: RawCCTV[] = data?.response?.data ?? [];
@@ -61,21 +68,28 @@ export function useNearbyNodes(position: GPSPosition | null): TrafficNode[] {
             roadName: r.roadsectionid,
           }));
         setCctvNodes(nodes);
+        // mock 노드 ID 패턴(cctv-00x)과 실 ITS ID 구분
+        const isMock = nodes.length === 0 || nodes.every((n) => n.id.match(/its-cctv-\d+/));
+        setCctvSource(isMock ? 'mock' : 'its');
       })
-      .catch(() => {});
+      .catch(() => setCctvSource('mock'));
 
-    // 교차로(신호) 노드 조회 — 실API 성공 시 real 데이터, 실패 시 Mock 폴백
-    fetch(`/api/intersections?${new URLSearchParams({ minLat: bbox.minLat, maxLat: bbox.maxLat, minLng: bbox.minLng, maxLng: bbox.maxLng })}`)
+    // 교차로(신호) 노드 조회
+    fetch(`/api/intersections?${new URLSearchParams({ minLat: q.minLat, maxLat: q.maxLat, minLng: q.minLng, maxLng: q.maxLng })}`)
       .then((r) => r.json())
       .then((data) => {
         const nodes: SignalNode[] = data?.data ?? [];
+        const src: ApiSource = (data?.source as ApiSource) ?? 'mock';
         if (nodes.length > 0) setSignalNodes(nodes);
+        setSignalSource(src);
       })
-      .catch(() => {});
+      .catch(() => setSignalSource('mock'));
   }, [position]);
 
-  return useMemo(
+  const nodes = useMemo(
     () => [...cctvNodes, ...signalNodes],
     [cctvNodes, signalNodes],
   );
+
+  return { nodes, cctvSource, signalSource };
 }
