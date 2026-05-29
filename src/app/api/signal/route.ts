@@ -37,37 +37,62 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ response: { data: filtered.map(toRawCITS) } });
   }
 
-  const apiKey = process.env.ITS_API_KEY;
-  if (!apiKey) return NextResponse.json({ error: 'ITS_API_KEY not set' }, { status: 500 });
-
-  // CCTV 패턴(NCCTVInfo)을 따른 신호 후보 URL 순서대로 시도
-  const SIGNAL_URLS = [
-    'http://openapi.its.go.kr/api/NSignalPhaseInfo',
-    'http://openapi.its.go.kr/api/NCITSSignalInfo',
-    'http://openapi.its.go.kr/api/NSignalInfo',
-  ];
-
-  const params = new URLSearchParams({
-    key: apiKey,
-    type: 'ex',
-    ...(intersectionId ? { itstId: intersectionId } : {}),
-  });
-
-  for (const baseUrl of SIGNAL_URLS) {
-    try {
-      const res = await fetch(`${baseUrl}?${params}`, {
-        signal: AbortSignal.timeout(4000),
-      });
-      if (!res.ok) continue;
-      const data = await res.json();
-      const rows = data?.response?.data ?? data?.Data ?? data?.data ?? [];
-      if (rows.length > 0) return NextResponse.json(rows[0]);
-    } catch {
-      // 다음 후보 시도
+  // ── 1. 국가 ITS 실시간 신호 API 시도 ────────────────────────────────────────
+  const itsKey = process.env.ITS_API_KEY;
+  if (itsKey) {
+    const ITS_SIGNAL_URLS = [
+      'http://openapi.its.go.kr/api/NSignalPhaseInfo',
+      'http://openapi.its.go.kr/api/NCITSSignalInfo',
+      'http://openapi.its.go.kr/api/NSignalInfo',
+    ];
+    const itsParams = new URLSearchParams({
+      key: itsKey,
+      type: 'ex',
+      ...(intersectionId ? { itstId: intersectionId } : {}),
+    });
+    for (const url of ITS_SIGNAL_URLS) {
+      try {
+        const res = await fetch(`${url}?${itsParams}`, {
+          signal: AbortSignal.timeout(4000),
+        });
+        if (!res.ok) continue;
+        const data = await res.json();
+        const rows = data?.response?.data ?? data?.Data ?? data?.data ?? [];
+        if (rows.length > 0) return NextResponse.json(rows[0]);
+      } catch { /* 다음 후보 */ }
     }
   }
 
-  // 모든 실API 실패 → Mock 시뮬레이션으로 폴백
+  // ── 2. 경기도 GITS 실시간 신호 API 시도 (GG_API_KEY 발급 후 활성화) ─────────
+  const ggKey = process.env.GG_API_KEY;
+  if (ggKey && intersectionId) {
+    const GG_SIGNAL_URLS = [
+      'https://openapigits.gg.go.kr/api/json/getSignalPhaseInfo',
+      'https://openapigits.gg.go.kr/api/json/getCITSSignalInfo',
+    ];
+    const ggParams = new URLSearchParams({
+      serviceKey: ggKey,   // TODO: 실제 파라미터명 확인 후 수정
+      itstId: intersectionId,
+      type: 'json',
+    });
+    for (const url of GG_SIGNAL_URLS) {
+      try {
+        const res = await fetch(`${url}?${ggParams}`, {
+          signal: AbortSignal.timeout(4000),
+        });
+        if (!res.ok) continue;
+        const data = await res.json();
+        const rows = data?.response?.body?.items?.item
+          ?? data?.items?.item
+          ?? data?.data
+          ?? [];
+        const list = Array.isArray(rows) ? rows : rows ? [rows] : [];
+        if (list.length > 0) return NextResponse.json(list[0]);
+      } catch { /* 다음 후보 */ }
+    }
+  }
+
+  // ── 3. 모든 실API 실패 → Mock 시뮬레이션으로 폴백 ───────────────────────────
   if (intersectionId) {
     const node = MOCK_SIGNAL_NODES.find(
       (n) => n.intersectionId === intersectionId || n.id === intersectionId,
