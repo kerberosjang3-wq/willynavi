@@ -15,16 +15,21 @@ export function CCTVPanel({ cctv }: CCTVPanelProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isError, setIsError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [retryKey, setRetryKey] = useState(0);
 
   // CCTV가 바뀔 때마다 상태 초기화
   useEffect(() => {
     setIsError(false);
     setIsLoading(true);
+    setRetryKey(0);
   }, [cctv?.id]);
+
+  const handleError = () => { setIsError(true); setIsLoading(false); };
+  const handleRetry = () => { setIsError(false); setIsLoading(true); setRetryKey((k) => k + 1); };
 
   // Mock URL이면 HLS 로드 시도하지 않음
   const streamUrl = cctv && !isMockUrl(cctv.streamUrl) ? cctv.streamUrl : null;
-  useHLSPlayer(videoRef, streamUrl);
+  useHLSPlayer(videoRef, streamUrl, handleError, retryKey);
 
   const isMock = cctv ? isMockUrl(cctv.streamUrl) : false;
   const sourceLabel = isMock ? 'MOCK' : (cctv?.source ?? '---');
@@ -72,10 +77,10 @@ export function CCTVPanel({ cctv }: CCTVPanelProps) {
               muted
               playsInline
               onLoadedData={() => setIsLoading(false)}
-              onError={() => { setIsError(true); setIsLoading(false); }}
+              onError={handleError}
             />
             {isLoading && !isError && <LoadingOverlay />}
-            {isError && <ErrorOverlay name={cctv.name} />}
+            {isError && <ErrorOverlay name={cctv.name} onRetry={handleRetry} />}
           </>
         )}
       </div>
@@ -130,13 +135,26 @@ function LoadingOverlay() {
   );
 }
 
-function ErrorOverlay({ name }: { name: string }) {
+function ErrorOverlay({ name, onRetry }: { name: string; onRetry: () => void }) {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 gap-1">
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 gap-2">
       <span className="font-vfd text-xs" style={{ color: '#ff4400' }}>스트림 오류</span>
       <span className="font-vfd text-xs text-center px-4" style={{ color: 'var(--cyber-cyan-dim)' }}>
         {name}
       </span>
+      <button
+        onClick={onRetry}
+        className="font-vfd text-xs px-3 py-1 rounded"
+        style={{
+          border: '1px solid var(--cyber-cyan)',
+          color: 'var(--cyber-cyan)',
+          background: 'rgba(0,212,255,0.08)',
+          letterSpacing: '0.1em',
+          marginTop: 4,
+        }}
+      >
+        ↺ 재시도
+      </button>
     </div>
   );
 }
