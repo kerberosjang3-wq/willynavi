@@ -44,12 +44,23 @@ export function CCTVPanel({ cctv }: CCTVPanelProps) {
         <span className="font-vfd text-xs" style={{ color: 'var(--tl-green)', letterSpacing: '0.15em' }}>
           ▶ LIVE
         </span>
-        <span className="font-vfd text-xs truncate max-w-[55%]" style={{ color: 'var(--text-secondary)' }}>
+        <span className="font-vfd text-xs truncate max-w-[45%]" style={{ color: 'var(--text-secondary)' }}>
           {cctv?.name ?? '---'}
         </span>
-        <span className="font-vfd text-xs" style={{ color: isMock ? 'var(--tl-yellow)' : 'var(--text-dim)' }}>
-          {sourceLabel}
-        </span>
+        <div className="flex items-center gap-2">
+          {!isMock && cctv && (
+            <button
+              onClick={() => videoRef.current?.requestPictureInPicture().catch(() => {})}
+              className="font-vfd text-xs px-1.5 py-0.5 rounded"
+              style={{ border: '1px solid var(--border)', color: 'var(--text-dim)', fontSize: '0.45rem' }}
+            >
+              PIP
+            </button>
+          )}
+          <span className="font-vfd text-xs" style={{ color: isMock ? 'var(--tl-yellow)' : 'var(--text-dim)' }}>
+            {sourceLabel}
+          </span>
+        </div>
       </div>
 
       <div className="relative" style={{ aspectRatio: '16/9' }}>

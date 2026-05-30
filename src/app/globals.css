@@ -105,5 +105,15 @@ html, body {
 }
 .dot-pulse { animation: dot-pulse 1s ease-in-out infinite; }
 
+/* ── 카운트다운 5초 이하 깜빡임 ────────────────────────────────────────────── */
+@keyframes count-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.25; }
+}
+.count-blink { animation: count-blink 0.45s ease-in-out infinite; }
+
+/* ── 신호 배경 글로우 페이드 ────────────────────────────────────────────────── */
+.signal-bg-transition { transition: background 0.6s ease; }
+
 /* ── 터치 대상 최소 크기 ───────────────────────────────────────────────────── */
 button, [role='button'] { min-height: 44px; min-width: 44px; }

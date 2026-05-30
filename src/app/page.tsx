@@ -11,13 +11,15 @@ import { CCTVList } from '@/components/dashboard/CCTVList';
 import { OlympicBlvdView } from '@/components/dashboard/OlympicBlvdView';
 import { SignalListView } from '@/components/dashboard/SignalListView';
 import { RouteCCTVView } from '@/components/dashboard/RouteCCTVView';
+import { DriveModeView } from '@/components/dashboard/DriveModeView';
+import { RouteCheckView } from '@/components/dashboard/RouteCheckView';
 import { CCTVNode, SignalNode } from '@/types';
 import { haversineDistance } from '@/utils/geo.utils';
 
-type TabId = 'nav' | 'olympic' | 'signal' | 'route';
+type TabId = 'drive' | 'routecheck' | 'nav' | 'olympic' | 'signal' | 'route';
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<TabId>('nav');
+  const [activeTab, setActiveTab] = useState<TabId>('drive');
 
   const { position, error: gpsError, isWatching } = useGeolocation();
   const { nodes: nearbyNodes, cctvSource, signalSource } = useNearbyNodes(position);
@@ -166,38 +168,62 @@ export default function DashboardPage() {
 
       {/* ── 경로 CCTV 탭 콘텐츠 ─────────────────────────────────────────── */}
       {activeTab === 'route' && <RouteCCTVView />}
+
+      {/* ── 주행 모드 탭 ────────────────────────────────────────────────── */}
+      {activeTab === 'drive' && (
+        <DriveModeView
+          phase={signal?.currentPhase ?? null}
+          remainingSeconds={signal?.remainingSeconds ?? null}
+          isSafetyWarning={isSafetyWarning}
+          intersectionName={signal?.name}
+          approachDir={approachDir}
+          cycleSeconds={snapping.activeSignal?.cycleSeconds ?? 90}
+          speedKmh={speedKmh}
+          activeCCTVs={snapping.activeCCTVs}
+        />
+      )}
+
+      {/* ── 경로 체크 탭 ────────────────────────────────────────────────── */}
+      {activeTab === 'routecheck' && <RouteCheckView />}
     </main>
   );
 }
 
 // ─── 탭 바 ──────────────────────────────────────────────────────────────────
 const TABS: { id: TabId; label: string }[] = [
-  { id: 'nav',     label: 'NAV' },
-  { id: 'olympic', label: '한강변' },
-  { id: 'signal',  label: '신호등' },
-  { id: 'route',   label: '경로' },
+  { id: 'drive',      label: '주행' },
+  { id: 'routecheck', label: '경로체크' },
+  { id: 'nav',        label: 'NAV' },
+  { id: 'olympic',    label: '한강변' },
+  { id: 'signal',     label: '신호등' },
+  { id: 'route',      label: '경로' },
 ];
 
 function TabBar({ activeTab, onTabChange }: { activeTab: TabId; onTabChange: (t: TabId) => void }) {
   return (
-    <div className="flex gap-2">
+    <div
+      className="flex gap-1.5"
+      style={{ overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+    >
       {TABS.map((tab) => {
         const isActive = tab.id === activeTab;
         return (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className="flex-1 py-2 rounded-lg font-vfd text-xs"
+            className="shrink-0 py-2 rounded-lg font-vfd text-xs"
             style={{
-              letterSpacing: '0.12em',
+              minWidth: 64,
+              paddingLeft: 10,
+              paddingRight: 10,
+              letterSpacing: '0.08em',
               background: isActive ? 'rgba(0,230,118,0.08)' : 'rgba(255,255,255,0.02)',
               border: `1px solid ${isActive ? 'var(--tl-green)' : 'var(--border)'}`,
               color: isActive ? 'var(--tl-green)' : 'var(--text-dim)',
-              boxShadow: 'none',
-              transition: 'all 0.2s',
+              transition: 'all 0.15s',
             }}
           >
-            {isActive && <span style={{ marginRight: 4 }}>▶</span>}
+            {isActive && <span style={{ marginRight: 3 }}>▶</span>}
             {tab.label}
           </button>
         );
