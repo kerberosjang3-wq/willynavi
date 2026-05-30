@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MOCK_CCTV_NODES } from '@/data/mockNodes';
 
-// ITS CCTV API 확인된 엔드포인트 (Java 샘플 소스 기준)
-const CCTV_URLS = [
+// 국가 ITS CCTV API (Java 샘플 기준 확인)
+const ITS_CCTV_URLS = [
   'https://openapi.its.go.kr:9443/cctvInfo',
   'http://openapi.its.go.kr:9443/cctvInfo',
+];
+
+// 서울시 열린데이터광장 CCTV API 서비스명 후보
+// TODO: data.seoul.go.kr 해당 데이터셋 → API 명세 → 서비스명(영문) 확인 후 맨 앞에 추가
+const SEOUL_SERVICE_NAMES = [
+  'SeoulRtdTrfficInfo',
+  'SfrCctvInfoInqireService',
+  'CCTV_INFO',
+  'SeoulRtd',
 ];
 
 export async function GET(req: NextRequest) {
@@ -17,20 +26,21 @@ export async function GET(req: NextRequest) {
   const maxLng = parseFloat(searchParams.get('maxX') ?? searchParams.get('maxLng') ?? '180');
 
   if (!useMock) {
-    const apiKey = process.env.ITS_API_KEY;
-    if (apiKey) {
+    // ── 1. 국가 ITS CCTV API ─────────────────────────────────────────────────
+    const itsKey = process.env.ITS_API_KEY;
+    if (itsKey) {
       const params = new URLSearchParams({
-        apiKey:   apiKey,   // 파라미터명 apiKey (Java 샘플 확인)
-        type:     'all',    // 도로유형: all=전체, its=국도, ex=고속도로
-        cctvType: '1',      // CCTV유형: 1=동영상, 2=이미지
+        apiKey:   itsKey,
+        type:     'all',
+        cctvType: '1',
         minX:     String(minLng),
         maxX:     String(maxLng),
         minY:     String(minLat),
         maxY:     String(maxLat),
-        getType:  'xml',    // 출력타입: xml
+        getType:  'xml',
       });
 
-      for (const baseUrl of CCTV_URLS) {
+      for (const baseUrl of ITS_CCTV_URLS) {
         try {
           const res = await fetch(`${baseUrl}?${params}`, {
             next: { revalidate: 60 },
@@ -38,87 +48,97 @@ export async function GET(req: NextRequest) {
             headers: { 'Content-Type': 'text/xml;charset=UTF-8' },
           });
           if (!res.ok) continue;
-
           const text = await res.text();
-
-          // XML 응답 파싱 (ITS API는 XML 반환)
           const rows = parseITSXML(text);
           if (rows.length > 0) {
-            return NextResponse.json({ response: { data: rows } });
+            return NextResponse.json({ response: { data: rows }, source: 'its' });
           }
-
-          // JSON 응답 시도 (혹시 JSON일 경우 대비)
-          try {
-            const json = JSON.parse(text);
-            const jsonRows = json?.response?.data ?? json?.Data ?? json?.data ?? [];
-            if (jsonRows.length > 0) {
-              return NextResponse.json({ response: { data: jsonRows } });
-            }
-          } catch { /* XML이었으면 무시 */ }
         } catch { /* 다음 후보 */ }
+      }
+    }
+
+    // ── 2. 서울시 CCTV API ───────────────────────────────────────────────────
+    const seoulKey = process.env.SEOUL_API_KEY;
+    if (seoulKey) {
+      for (const svcName of SEOUL_SERVICE_NAMES) {
+        try {
+          // 서울 OpenAPI 표준 URL: /{KEY}/json/{SERVICE}/{START}/{END}/
+          const url = `http://openapi.seoul.go.kr:8088/${seoulKey}/json/${svcName}/1/100/`;
+          const res = await fetch(url, {
+            signal: AbortSignal.timeout(5000),
+          });
+          if (!res.ok) continue;
+          const json = await res.json();
+
+          // 서울 API 응답 구조 정규화
+          const rows: Record<string, string>[] =
+            json?.[svcName]?.row ??
+            json?.SeoulRtd?.row ??
+            json?.row ??
+            [];
+
+          if (rows.length === 0) continue;
+
+          // bbox 필터 + 정규화
+          const normalized = rows
+            .filter((r) => {
+              const lat = parseFloat(r.LATITUDE ?? r.coordy ?? '0');
+              const lng = parseFloat(r.LONGITUDE ?? r.coordx ?? '0');
+              return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
+            })
+            .map((r) => ({
+              cctvid:       r.CCTV_ID ?? `seoul-${r.LATITUDE}_${r.LONGITUDE}`,
+              cctvname:     r.CCTV_NAME ?? r.cctvname ?? '서울 CCTV',
+              coordy:       r.LATITUDE ?? r.coordy ?? '0',
+              coordx:       r.LONGITUDE ?? r.coordx ?? '0',
+              cctvurl:      (r.CCTV_URL ?? r.cctvurl ?? '').replace(/^http:\/\//i, 'https://'),
+              cctvformat:   'HLS',
+              roadsectionid: r.ROAD_NM ?? r.roadsectionid ?? '',
+            }));
+
+          if (normalized.length > 0) {
+            return NextResponse.json({ response: { data: normalized }, source: 'seoul' });
+          }
+        } catch { /* 다음 서비스명 시도 */ }
       }
     }
   }
 
-  // Mock 폴백: bbox 내 Mock CCTV 반환
+  // ── 3. Mock 폴백 ──────────────────────────────────────────────────────────
   const filtered = MOCK_CCTV_NODES.filter(
     (n) =>
       n.coordinate.lat >= minLat && n.coordinate.lat <= maxLat &&
       n.coordinate.lng >= minLng && n.coordinate.lng <= maxLng,
   );
-  return NextResponse.json({ response: { data: filtered.map(toMockRaw) } });
+  return NextResponse.json({ response: { data: filtered.map(toMockRaw) }, source: 'mock' });
 }
 
-// ─── ITS XML 응답 파서 ────────────────────────────────────────────────────────
-// 실제 응답 예시:
-// <data>
-//   <cctvname>[수도권제1순환선] 성남;</cctvname>
-//   <cctvurl>http://cctvsec.ktict.co.kr/2/...</cctvurl>
-//   <coordy>37.42889</coordy>
-//   <coordx>127.12361;</coordx>
-//   <cctvformat>HLS</cctvformat>
-//   <cctvtype>1</cctvtype>
-//   <roadsectionid/>
-// </data>
+// ─── ITS XML 파서 ────────────────────────────────────────────────────────────
 function parseITSXML(xml: string): Record<string, string>[] {
   const results: Record<string, string>[] = [];
-  const dataBlocks = xml.matchAll(/<data>([\s\S]*?)<\/data>/g);
-
-  for (const match of dataBlocks) {
-    const block = match[1];
+  for (const match of xml.matchAll(/<data>([\s\S]*?)<\/data>/g)) {
     const obj: Record<string, string> = {};
-
-    // 각 필드 추출
-    const fields = block.matchAll(/<(\w+)>([^<]*)<\/\1>/g);
-    for (const [, key, value] of fields) {
-      let v = value.trim().replace(/;$/, ''); // 세미콜론 제거
-      // Mixed Content 방지: http → https 변환
+    for (const [, key, value] of match[1].matchAll(/<(\w+)>([^<]*)<\/\1>/g)) {
+      let v = value.trim().replace(/;$/, '');
       if (key === 'cctvurl') v = v.replace(/^http:\/\//i, 'https://');
       obj[key] = v;
     }
-
-    // 필수 필드 있는 것만 포함
     if (obj.coordy && obj.coordx && obj.cctvurl) {
-      // cctvid가 없으면 좌표로 생성
-      if (!obj.cctvid) {
-        obj.cctvid = `${obj.coordy}_${obj.coordx}`;
-      }
+      if (!obj.cctvid) obj.cctvid = `${obj.coordy}_${obj.coordx}`;
       results.push(obj);
     }
   }
-
   return results;
 }
 
-// Mock 노드 → ITS 원시 포맷 변환
 function toMockRaw(node: (typeof MOCK_CCTV_NODES)[0]) {
   return {
-    cctvid:       node.id,
-    cctvname:     node.name,
-    coordy:       String(node.coordinate.lat),
-    coordx:       String(node.coordinate.lng),
-    cctvurl:      node.streamUrl,
-    cctvformat:   'HLS',
+    cctvid:        node.id,
+    cctvname:      node.name,
+    coordy:        String(node.coordinate.lat),
+    coordx:        String(node.coordinate.lng),
+    cctvurl:       node.streamUrl,
+    cctvformat:    'HLS',
     roadsectionid: node.roadName ?? '',
   };
 }
