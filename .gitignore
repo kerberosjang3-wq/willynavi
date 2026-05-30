@@ -32,6 +32,13 @@ yarn-error.log*
 # temp files
 tmp_*.json
 
+# 루트 디자인 소스 이미지
+*.png
+*.jpg
+*.jpeg
+!public/**/*.png
+!public/**/*.jpg
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
