@@ -4,8 +4,16 @@ import { CCTVPanel } from './CCTVPanel';
 import { searchTMapPOI, getTMapRoute, GeoPoint, TMapRouteOption } from '@/services/tmap';
 import { filterCCTVsAlongRoute, RouteCCTV, formatDist } from '@/utils/routeUtils';
 import { SEOUL_STATIC_CCTVS } from '@/data/seoulStaticCCTVs';
+import type { RouteSummary } from '@/services/tmap';
 
 type Status = 'idle' | 'searching' | 'routing' | 'done' | 'error';
+
+function formatTime(sec: number): string {
+  const h = Math.floor(sec / 3600);
+  const m = Math.ceil((sec % 3600) / 60);
+  if (h > 0) return `${h}시간 ${m}분`;
+  return `${m}분`;
+}
 
 // T-Map 경로 옵션 목록
 const ROUTE_OPTIONS: { value: TMapRouteOption; label: string }[] = [
@@ -118,6 +126,7 @@ export function RouteCCTVView() {
   const [errMsg,      setErrMsg]      = useState('');
   const [cctvs,       setCctvs]       = useState<RouteCCTV[]>([]);
   const [selected,    setSelected]    = useState<RouteCCTV | null>(null);
+  const [summary,     setSummary]     = useState<RouteSummary | null>(null);
 
   const canSearch = !!startPt && !!endPt;
 
@@ -127,14 +136,16 @@ export function RouteCCTVView() {
     setErrMsg('');
     setCctvs([]);
     setSelected(null);
+    setSummary(null);
 
     try {
-      const polyline = await getTMapRoute(startPt, endPt, {
+      const { polyline, summary: routeSummary } = await getTMapRoute(startPt, endPt, {
         optionValue: routeOption,
         trafficInfo: 'Y',
       });
       if (polyline.length < 2) throw new Error('경로를 찾을 수 없습니다');
 
+      setSummary(routeSummary);
       const results = filterCCTVsAlongRoute(SEOUL_STATIC_CCTVS, polyline, 300);
       setCctvs(results);
       setSelected(results[0] ?? null);
@@ -198,10 +209,37 @@ export function RouteCCTVView() {
           </div>
         </div>
 
+        {/* 경로 요약 (소요시간 · 거리 · 통행료) */}
+        {summary && (
+          <div
+            className="flex items-center justify-between rounded-lg px-3 py-2.5"
+            style={{ background: 'rgba(255,157,0,0.08)', border: '1px solid rgba(255,157,0,0.3)' }}
+          >
+            <div className="flex flex-col items-center flex-1">
+              <span className="font-vfd" style={{ fontSize: '0.45rem', color: 'var(--cyber-cyan-dim)', letterSpacing: '0.1em' }}>소요시간</span>
+              <span className="font-display font-black" style={{ fontSize: '1.3rem', color: 'var(--cyber-amber)', textShadow: '0 0 10px #ff9d00', lineHeight: 1.1 }}>
+                {formatTime(summary.totalTimeSec)}
+              </span>
+            </div>
+            <div style={{ width: 1, height: 32, background: 'rgba(255,157,0,0.25)' }} />
+            <div className="flex flex-col items-center flex-1">
+              <span className="font-vfd" style={{ fontSize: '0.45rem', color: 'var(--cyber-cyan-dim)', letterSpacing: '0.1em' }}>거리</span>
+              <span className="font-vfd text-xs" style={{ color: 'var(--cyber-cyan)' }}>{formatDist(summary.totalDistanceM)}</span>
+            </div>
+            <div style={{ width: 1, height: 32, background: 'rgba(255,157,0,0.25)' }} />
+            <div className="flex flex-col items-center flex-1">
+              <span className="font-vfd" style={{ fontSize: '0.45rem', color: 'var(--cyber-cyan-dim)', letterSpacing: '0.1em' }}>통행료</span>
+              <span className="font-vfd text-xs" style={{ color: summary.totalFare > 0 ? '#ff9d00' : 'var(--cyber-cyan-dim)' }}>
+                {summary.totalFare > 0 ? `${summary.totalFare.toLocaleString()}원` : '없음'}
+              </span>
+            </div>
+          </div>
+        )}
+
         <button
           onClick={handleSearch}
           disabled={!canSearch || status === 'routing'}
-          className="font-vfd text-xs py-2 rounded-lg mt-1"
+          className="font-vfd text-xs py-2 rounded-lg"
           style={{
             background: canSearch ? 'rgba(0,212,255,0.12)' : 'rgba(255,255,255,0.03)',
             border: `1px solid ${canSearch ? 'var(--cyber-cyan)' : 'var(--cyber-border)'}`,

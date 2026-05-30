@@ -52,12 +52,24 @@ export async function searchTMapPOI(keyword: string): Promise<GeoPoint[]> {
     }));
 }
 
-// ── 경로 계산 → 폴리라인 [lng, lat][] 반환 ────────────────────────────────
+// 경로 요약 정보
+export interface RouteSummary {
+  totalDistanceM: number;  // 총 거리 (미터)
+  totalTimeSec:   number;  // 총 소요시간 (초)
+  totalFare:      number;  // 통행요금 (원)
+}
+
+export interface RouteResult {
+  polyline: [number, number][];  // [lng, lat][]
+  summary:  RouteSummary;
+}
+
+// ── 경로 계산 → 폴리라인 + 요약 반환 ─────────────────────────────────────────
 export async function getTMapRoute(
   start:   GeoPoint,
   end:     GeoPoint,
   options: TMapRouteOptions = {},
-): Promise<[number, number][]> {
+): Promise<RouteResult> {
   const key = process.env.NEXT_PUBLIC_TMAP_API_KEY;
   if (!key) throw new Error('TMAP_API_KEY 없음');
 
@@ -81,11 +93,22 @@ export async function getTMapRoute(
   if (!r.ok) throw new Error(`경로 계산 실패: ${r.status}`);
   const d = await r.json();
 
-  const coords: [number, number][] = [];
+  const polyline: [number, number][] = [];
+  let summary: RouteSummary = { totalDistanceM: 0, totalTimeSec: 0, totalFare: 0 };
+
   for (const f of d?.features ?? []) {
     if (f.geometry?.type === 'LineString') {
-      coords.push(...(f.geometry.coordinates as [number, number][]));
+      polyline.push(...(f.geometry.coordinates as [number, number][]));
+    }
+    // 첫 번째 Point feature의 properties에 요약 정보가 있음
+    if (f.geometry?.type === 'Point' && f.properties?.totalDistance) {
+      summary = {
+        totalDistanceM: Number(f.properties.totalDistance),
+        totalTimeSec:   Number(f.properties.totalTime),
+        totalFare:      Number(f.properties.totalFare ?? 0),
+      };
     }
   }
-  return coords;
+
+  return { polyline, summary };
 }
