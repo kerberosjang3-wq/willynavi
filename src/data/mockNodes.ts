@@ -50,7 +50,13 @@ export const MOCK_CCTV_NODES: CCTVNode[] = [
   { id: 'cctv-109', type: 'CCTV', name: '안산 중앙역 CCTV',         coordinate: { lat: 37.3219, lng: 126.8309 }, streamUrl: 'https://example-its.go.kr/cctv/ansan.m3u8',        source: 'ITS', roadName: '중앙대로' },
   { id: 'cctv-110', type: 'CCTV', name: '용인 기흥역 CCTV',         coordinate: { lat: 37.2757, lng: 127.1157 }, streamUrl: 'https://example-its.go.kr/cctv/giheung.m3u8',      source: 'ITS', roadName: '용구대로' },
   { id: 'cctv-111', type: 'CCTV', name: '고양 화정역 CCTV',         coordinate: { lat: 37.6338, lng: 126.8318 }, streamUrl: 'https://example-its.go.kr/cctv/hwajung.m3u8',      source: 'ITS', roadName: '호국로' },
-  { id: 'cctv-112', type: 'CCTV', name: '남양주 마석 CCTV',         coordinate: { lat: 37.6361, lng: 127.2167 }, streamUrl: 'https://example-its.go.kr/cctv/namyangju.m3u8',    source: 'ITS', roadName: '경춘로' },
+  { id: 'cctv-112', type: 'CCTV', name: '남양주 마석 CCTV',         coordinate: { lat: 37.6361, lng: 127.2167 }, streamUrl: 'https://example-its.go.kr/cctv/maseok.m3u8',       source: 'ITS', roadName: '경춘로' },
+  { id: 'cctv-113', type: 'CCTV', name: '남양주 도농역 CCTV',       coordinate: { lat: 37.5952, lng: 127.1698 }, streamUrl: 'https://example-its.go.kr/cctv/donong.m3u8',       source: 'ITS', roadName: '경춘로' },
+  { id: 'cctv-114', type: 'CCTV', name: '남양주시청(다산) CCTV',    coordinate: { lat: 37.6369, lng: 127.2166 }, streamUrl: 'https://example-its.go.kr/cctv/dasan.m3u8',        source: 'ITS', roadName: '다산중앙로' },
+  { id: 'cctv-115', type: 'CCTV', name: '남양주 평내호평역 CCTV',   coordinate: { lat: 37.6487, lng: 127.2146 }, streamUrl: 'https://example-its.go.kr/cctv/pyeongnae.m3u8',    source: 'ITS', roadName: '호평로' },
+  { id: 'cctv-116', type: 'CCTV', name: '남양주 진접읍 CCTV',       coordinate: { lat: 37.7012, lng: 127.2056 }, streamUrl: 'https://example-its.go.kr/cctv/jincheop.m3u8',     source: 'ITS', roadName: '진접로' },
+  { id: 'cctv-117', type: 'CCTV', name: '남양주 화도읍 CCTV',       coordinate: { lat: 37.6637, lng: 127.3064 }, streamUrl: 'https://example-its.go.kr/cctv/hwado.m3u8',        source: 'ITS', roadName: '화도로' },
+  { id: 'cctv-118', type: 'CCTV', name: '남양주 덕소 CCTV',         coordinate: { lat: 37.5821, lng: 127.2108 }, streamUrl: 'https://example-its.go.kr/cctv/deokso.m3u8',       source: 'ITS', roadName: '팔당로' },
 ];
 
 export const MOCK_SIGNAL_NODES: SignalNode[] = [
@@ -90,6 +96,13 @@ export const MOCK_SIGNAL_NODES: SignalNode[] = [
   { id: 'sig-105', type: 'SIGNAL', name: '의정부역 교차로',     intersectionId: 'INT-UJB-001', coordinate: { lat: 37.7381, lng: 127.0338 }, currentPhase: 'YELLOW', remainingSeconds: 5,  cycleSeconds: 100, lastUpdated: Date.now() },
   { id: 'sig-106', type: 'SIGNAL', name: '구리역 교차로',       intersectionId: 'INT-GRI-001', coordinate: { lat: 37.5960, lng: 127.1297 }, currentPhase: 'RED',    remainingSeconds: 32, cycleSeconds: 110, lastUpdated: Date.now() },
   { id: 'sig-107', type: 'SIGNAL', name: '용인 기흥역 교차로',  intersectionId: 'INT-GHG-001', coordinate: { lat: 37.2757, lng: 127.1157 }, currentPhase: 'GREEN',  remainingSeconds: 18, cycleSeconds: 90,  lastUpdated: Date.now() },
+
+  // ── 남양주시 ───────────────────────────────────────────────────────────────
+  { id: 'sig-120', type: 'SIGNAL', name: '남양주 도농역 교차로',    intersectionId: 'INT-NJD-001', coordinate: { lat: 37.5952, lng: 127.1698 }, currentPhase: 'GREEN',  remainingSeconds: 22, cycleSeconds: 90,  lastUpdated: Date.now() },
+  { id: 'sig-121', type: 'SIGNAL', name: '남양주시청 교차로',       intersectionId: 'INT-NJC-001', coordinate: { lat: 37.6369, lng: 127.2166 }, currentPhase: 'RED',    remainingSeconds: 35, cycleSeconds: 100, lastUpdated: Date.now() },
+  { id: 'sig-122', type: 'SIGNAL', name: '남양주 평내호평 교차로',  intersectionId: 'INT-NJP-001', coordinate: { lat: 37.6487, lng: 127.2146 }, currentPhase: 'GREEN',  remainingSeconds: 16, cycleSeconds: 90,  lastUpdated: Date.now() },
+  { id: 'sig-123', type: 'SIGNAL', name: '남양주 진접읍 교차로',    intersectionId: 'INT-NJJ-001', coordinate: { lat: 37.7012, lng: 127.2056 }, currentPhase: 'YELLOW', remainingSeconds: 4,  cycleSeconds: 100, lastUpdated: Date.now() },
+  { id: 'sig-124', type: 'SIGNAL', name: '남양주 마석 교차로',      intersectionId: 'INT-NJM-001', coordinate: { lat: 37.6361, lng: 127.2167 }, currentPhase: 'RED',    remainingSeconds: 28, cycleSeconds: 110, lastUpdated: Date.now() },
 ];
 
 export const ALL_MOCK_NODES = [...MOCK_CCTV_NODES, ...MOCK_SIGNAL_NODES];
