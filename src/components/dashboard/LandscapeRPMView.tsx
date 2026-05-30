@@ -163,7 +163,23 @@ export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, t
         }}
       />
 
-      {/* ── LEFT: 속도 패널 ── */}
+      {/* ── LEFT: 3개 정보 카드 ── */}
+      <div
+        style={{
+          flex: '0 0 auto',
+          width: 'clamp(90px, 20vw, 150px)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          gap: 8,
+        }}
+      >
+        <SpeedLimitCard limit={speedLimit} speedKmh={speedKmh} />
+        <TrafficCard level={trafficLevel} avgKmh={trafficSpeedKmh} />
+        <SchoolZoneCard distM={schoolZoneM} />
+      </div>
+
+      {/* ── CENTER: 속도 패널 ── */}
       <div
         style={{
           flex: '1 1 0',
@@ -246,22 +262,6 @@ export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, t
             transition: 'background 0.35s',
           }}
         />
-      </div>
-
-      {/* ── CENTER: 3개 정보 카드 ── */}
-      <div
-        style={{
-          flex: '0 0 auto',
-          width: 'clamp(90px, 20vw, 150px)',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          gap: 8,
-        }}
-      >
-        <SpeedLimitCard limit={speedLimit} speedKmh={speedKmh} />
-        <TrafficCard level={trafficLevel} avgKmh={trafficSpeedKmh} />
-        <SchoolZoneCard distM={schoolZoneM} />
       </div>
 
       {/* ── RIGHT: 과속카메라 패널 ── */}
