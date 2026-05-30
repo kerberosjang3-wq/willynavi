@@ -96,10 +96,10 @@ export function useVirtualRPM(speedKmh: number | null): VirtualRPMState {
       const accelBoost = Math.max(0, spdDelta) * 16;
       prevSpdRef.current = spd;
 
-      // 아이들 진동: 0→8 km/h 구간에서 선형 페이드아웃
-      // GPS 없음(null) → 조용한 진폭(100), 정지(0) → 선명한 진폭(320)
+      // GPS 없음(null) → 진동 없이 고정 아이들
+      // 정지(0) → 선명한 아이들 진동, 0→8 km/h 구간에서 페이드아웃
       const idleFade = spd < 8 ? (8 - spd) / 8 : 0;
-      const idleAmp  = hasSpeed ? 320 * idleFade : 100;
+      const idleAmp  = hasSpeed ? 320 * idleFade : 0;
       const idleSway = idleOscillation(t, idleAmp);
 
       const phase = phaseRef.current;
