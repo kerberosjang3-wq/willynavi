@@ -17,6 +17,7 @@ import { LandscapeRPMView } from '@/components/dashboard/LandscapeRPMView';
 import { CCTVNode, SignalNode } from '@/types';
 import { haversineDistance } from '@/utils/geo.utils';
 import { useSpeedCameras, computeNearest } from '@/hooks/useSpeedCamera';
+import { useTrafficInfo } from '@/hooks/useTrafficInfo';
 
 type TabId = 'drive' | 'routecheck' | 'nav' | 'olympic' | 'signal' | 'route';
 
@@ -86,6 +87,28 @@ export default function DashboardPage() {
     () => computeNearest(rawCameras, position),
     [rawCameras, position],
   );
+
+  const traffic = useTrafficInfo(position);
+
+  // 현재 도로 제한속도: 전방 1km 이내 카메라 speedLimit 활용
+  const currentSpeedLimit = useMemo(() => {
+    if (!nearestCamera || nearestCamera.speedLimit <= 0 || nearestCamera.distanceM > 1000) return null;
+    return nearestCamera.speedLimit;
+  }, [nearestCamera]);
+
+  // 스쿨존: rawCameras 중 type=school 이고 800m 이내인 가장 가까운 것
+  const schoolZone = useMemo(() => {
+    if (!position || rawCameras.length === 0) return null;
+    const candidates = rawCameras
+      .filter(c => c.type === 'school')
+      .map(c => ({
+        ...c,
+        distanceM: Math.round(haversineDistance(position, { lat: c.lat, lng: c.lng })),
+      }))
+      .filter(c => c.distanceM <= 800)
+      .sort((a, b) => a.distanceM - b.distanceM);
+    return candidates[0] ?? null;
+  }, [rawCameras, position]);
 
   return (
     <main
@@ -205,7 +228,16 @@ export default function DashboardPage() {
       {activeTab === 'routecheck' && <RouteCheckView />}
 
       {/* ── 가로 모드: Virtual RPM 오버레이 ─────────────────────────────── */}
-      {isLandscape && <LandscapeRPMView speedKmh={speedKmh} camera={nearestCamera} />}
+      {isLandscape && (
+        <LandscapeRPMView
+          speedKmh={speedKmh}
+          camera={nearestCamera}
+          speedLimit={currentSpeedLimit}
+          trafficLevel={traffic.level}
+          trafficSpeedKmh={traffic.avgSpeedKmh}
+          schoolZoneM={schoolZone?.distanceM ?? null}
+        />
+      )}
     </main>
   );
 }
