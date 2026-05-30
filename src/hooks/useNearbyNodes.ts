@@ -4,7 +4,7 @@ import { CCTVNode, GPSPosition, SignalNode, TrafficNode } from '@/types';
 import { haversineDistance } from '@/utils/geo.utils';
 
 const REFETCH_THRESHOLD_M = 500;
-const BBOX_DEG = 0.027;
+const BBOX_DEG = 0.05;   // ~5km — 고속도로 CCTV 커버 위해 확장
 
 export type ApiSource = 'its' | 'gg' | 'mock' | 'loading';
 

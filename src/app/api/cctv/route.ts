@@ -91,8 +91,10 @@ function parseITSXML(xml: string): Record<string, string>[] {
     // 각 필드 추출
     const fields = block.matchAll(/<(\w+)>([^<]*)<\/\1>/g);
     for (const [, key, value] of fields) {
-      // 세미콜론 제거 (coordx, cctvname 등에 붙어오는 경우)
-      obj[key] = value.trim().replace(/;$/, '');
+      let v = value.trim().replace(/;$/, ''); // 세미콜론 제거
+      // Mixed Content 방지: http → https 변환
+      if (key === 'cctvurl') v = v.replace(/^http:\/\//i, 'https://');
+      obj[key] = v;
     }
 
     // 필수 필드 있는 것만 포함
