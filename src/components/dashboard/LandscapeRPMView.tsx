@@ -17,7 +17,7 @@ function segColor(i: number): string {
 }
 
 export function LandscapeRPMView({ speedKmh, camera }: { speedKmh: number | null; camera: SpeedCamera | null }) {
-  const { rpm, gear, isShifting } = useVirtualRPM(speedKmh);
+  const { rpm, gear, isShifting, hasSpeed } = useVirtualRPM(speedKmh);
 
   const activeSeg    = Math.min(SEG_COUNT, Math.round((rpm / RPM_MAX) * SEG_COUNT));
   const speedDisplay = speedKmh !== null ? Math.round(speedKmh) : '--';
@@ -67,8 +67,11 @@ export function LandscapeRPMView({ speedKmh, camera }: { speedKmh: number | null
         <span className="font-display" style={{ fontSize: '0.6rem', color: '#5B9FFF', letterSpacing: '0.3em' }}>
           WILLY<span style={{ color: '#FFD600', margin: '0 2px' }}>·</span>NAVI
         </span>
-        <span className="font-vfd" style={{ fontSize: '0.5rem', color: '#252836', letterSpacing: '0.18em' }}>
-          VIRTUAL RPM MODE
+        <span
+          className="font-vfd"
+          style={{ fontSize: '0.5rem', color: hasSpeed ? '#1E4A2A' : '#4A3010', letterSpacing: '0.18em' }}
+        >
+          {hasSpeed ? 'GPS LINKED' : 'GPS WAIT...'}
         </span>
       </div>
 
@@ -80,10 +83,10 @@ export function LandscapeRPMView({ speedKmh, camera }: { speedKmh: number | null
           style={{
             fontSize: 'clamp(3.5rem, 13vw, 6.5rem)',
             lineHeight: 1,
-            color: '#FFD600',
+            color: hasSpeed ? '#FFD600' : '#2A2E1E',
             letterSpacing: '-0.03em',
             textShadow: isShifting ? '0 0 50px rgba(255,214,0,0.42)' : 'none',
-            transition: 'text-shadow 0.08s',
+            transition: 'color 0.4s, text-shadow 0.08s',
           }}
         >
           {speedDisplay}
