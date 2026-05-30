@@ -10,10 +10,11 @@ import { CCTVPanel } from '@/components/dashboard/CCTVPanel';
 import { CCTVList } from '@/components/dashboard/CCTVList';
 import { OlympicBlvdView } from '@/components/dashboard/OlympicBlvdView';
 import { SignalListView } from '@/components/dashboard/SignalListView';
+import { RouteCCTVView } from '@/components/dashboard/RouteCCTVView';
 import { CCTVNode, SignalNode } from '@/types';
 import { haversineDistance } from '@/utils/geo.utils';
 
-type TabId = 'nav' | 'olympic' | 'signal';
+type TabId = 'nav' | 'olympic' | 'signal' | 'route';
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<TabId>('nav');
@@ -162,6 +163,9 @@ export default function DashboardPage() {
           heading={position?.heading ?? null}
         />
       )}
+
+      {/* ── 경로 CCTV 탭 콘텐츠 ─────────────────────────────────────────── */}
+      {activeTab === 'route' && <RouteCCTVView />}
     </main>
   );
 }
@@ -171,6 +175,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'nav',     label: 'NAV' },
   { id: 'olympic', label: '한강변' },
   { id: 'signal',  label: '신호등' },
+  { id: 'route',   label: '경로' },
 ];
 
 function TabBar({ activeTab, onTabChange }: { activeTab: TabId; onTabChange: (t: TabId) => void }) {
