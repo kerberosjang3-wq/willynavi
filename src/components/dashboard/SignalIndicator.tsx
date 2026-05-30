@@ -7,7 +7,7 @@ interface SignalIndicatorProps {
   isSafetyWarning: boolean;
   remainingSeconds: number | null;
   intersectionName?: string;
-  approachDir?: string | null;  // 접근 방향 (북향/동향/남향/서향)
+  approachDir?: string | null;
 }
 
 export function SignalIndicator({
@@ -17,70 +17,47 @@ export function SignalIndicator({
   intersectionName,
   approachDir,
 }: SignalIndicatorProps) {
-  const color = phase ? phaseColor(phase) : 'var(--cyber-border)';
+  const color = phase ? phaseColor(phase) : 'var(--border)';
 
   return (
     <div className="cyber-panel px-3 py-3 h-full flex flex-col gap-2">
-      {/* 교차로명 + 접근 방향 */}
       <div className="flex items-center justify-center gap-1 w-full">
-        <span
-          className="font-vfd text-xs truncate"
-          style={{ color: 'var(--cyber-cyan-dim)', letterSpacing: '0.06em' }}
-        >
+        <span className="font-vfd text-xs truncate" style={{ color: 'var(--text-dim)', letterSpacing: '0.06em' }}>
           {intersectionName ?? '신호 없음'}
         </span>
         {approachDir && (
-          <span
-            className="font-vfd shrink-0"
-            style={{ fontSize: '0.5rem', color: 'var(--cyber-amber)', letterSpacing: '0.08em' }}
-          >
+          <span className="font-vfd shrink-0" style={{ fontSize: '0.5rem', color: 'var(--tl-yellow)', letterSpacing: '0.08em' }}>
             {approachDir}
           </span>
         )}
       </div>
 
-      {/* 신호등 + 카운트다운 */}
       <div className="flex items-center justify-center gap-3 flex-1">
-        {/* 세로 신호등 하우징 */}
         <div
           className="flex flex-col items-center gap-2 px-2 py-3 rounded-xl"
-          style={{
-            background: '#080808',
-            border: '1px solid var(--cyber-border)',
-            boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.8)',
-          }}
+          style={{ background: '#0E1018', border: '1px solid var(--border)' }}
         >
           <SignalDot color="red"    active={phase === 'RED'}    pulse={phase === 'RED' && isSafetyWarning} />
           <SignalDot color="yellow" active={phase === 'YELLOW'} pulse={phase === 'YELLOW' && isSafetyWarning} />
           <SignalDot color="green"  active={phase === 'GREEN'}  pulse={false} />
         </div>
 
-        {/* 카운트다운 */}
         <div className="flex flex-col items-center justify-center gap-0.5">
           {isSafetyWarning ? (
-            <span
-              className="font-vfd text-sm text-center safety-warning leading-tight"
-              style={{ maxWidth: 72 }}
-            >
+            <span className="font-vfd text-sm text-center safety-warning leading-tight" style={{ maxWidth: 72 }}>
               신호<br />변경주의
             </span>
           ) : (
             <>
               <span
                 className="font-display font-black leading-none"
-                style={{
-                  fontSize: '3rem',
-                  color,
-                  textShadow: phase ? `0 0 14px ${color}, 0 0 28px ${color}66` : 'none',
-                }}
+                style={{ fontSize: '3rem', color, textShadow: 'none' }}
               >
                 {remainingSeconds !== null && phase !== null
                   ? String(remainingSeconds).padStart(2, '0')
                   : '--'}
               </span>
-              <span className="font-vfd text-xs" style={{ color: 'var(--cyber-border)' }}>
-                초
-              </span>
+              <span className="font-vfd text-xs" style={{ color: 'var(--text-dim)' }}>초</span>
             </>
           )}
         </div>
@@ -91,10 +68,10 @@ export function SignalIndicator({
 
 type DotColor = 'red' | 'yellow' | 'green';
 
-const DOT: Record<DotColor, { active: string; glow: string; dim: string }> = {
-  red:    { active: '#ff3333', glow: '#cc0000', dim: '#1c0505' },
-  yellow: { active: '#ffc107', glow: '#cc9900', dim: '#1c1505' },
-  green:  { active: '#00ee44', glow: '#009933', dim: '#051c0a' },
+const DOT: Record<DotColor, { active: string; dim: string }> = {
+  red:    { active: '#FF4A4A', dim: '#1C0808' },
+  yellow: { active: '#FFD600', dim: '#1C1800' },
+  green:  { active: '#00E676', dim: '#081C10' },
 };
 
 function SignalDot({ color, active, pulse }: { color: DotColor; active: boolean; pulse: boolean }) {
@@ -107,11 +84,8 @@ function SignalDot({ color, active, pulse }: { color: DotColor; active: boolean;
         height: 28,
         borderRadius: '50%',
         background: active ? s.active : s.dim,
-        boxShadow: active
-          ? `0 0 10px ${s.active}, 0 0 22px ${s.glow}, inset 0 1px 2px rgba(255,255,255,0.2)`
-          : 'inset 0 1px 3px rgba(0,0,0,0.8)',
-        border: `1px solid ${active ? s.active + '66' : '#0d0d0d'}`,
-        transition: 'background 0.3s, box-shadow 0.3s',
+        border: `1px solid ${active ? s.active + '44' : '#0d0d0d'}`,
+        transition: 'background 0.3s',
       }}
     />
   );
@@ -119,9 +93,9 @@ function SignalDot({ color, active, pulse }: { color: DotColor; active: boolean;
 
 function phaseColor(phase: SignalPhase): string {
   switch (phase) {
-    case 'GREEN':  return '#00ee44';
-    case 'YELLOW': return '#ffc107';
-    case 'RED':    return '#ff3333';
-    default:       return '#00d4ff';
+    case 'GREEN':  return '#00E676';
+    case 'YELLOW': return '#FFD600';
+    case 'RED':    return '#FF4A4A';
+    default:       return 'var(--text-dim)';
   }
 }

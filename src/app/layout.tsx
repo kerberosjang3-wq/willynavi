@@ -17,7 +17,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,    // 운전 중 핀치줌 방지
   userScalable: false,
-  themeColor: '#00ff88',
+  themeColor: '#121624',
   viewportFit: 'cover',
 };
 

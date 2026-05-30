@@ -14,36 +14,17 @@ export function OlympicBlvdView() {
 
   return (
     <div className="flex flex-col" style={{ gap: 10 }}>
-      {/* ── 섹션 헤더 ──────────────────────────────────────────────────── */}
-      <div
-        className="glass-panel flex items-center justify-between px-4 py-2"
-      >
+      <div className="glass-panel flex items-center justify-between px-4 py-2">
         <div className="flex items-center gap-2">
-          <span
-            className="font-vfd"
-            style={{ fontSize: '0.6rem', color: 'var(--cyber-cyan)', letterSpacing: '0.15em' }}
-          >
-            ▶ HAN RIVER
-          </span>
-          <span
-            className="font-vfd text-xs"
-            style={{ color: 'var(--cyber-cyan-dim)' }}
-          >
-            한강변 교통 CCTV
-          </span>
+          <span className="font-vfd" style={{ fontSize: '0.6rem', color: 'var(--tl-green)', letterSpacing: '0.15em' }}>▶ HAN RIVER</span>
+          <span className="font-vfd text-xs" style={{ color: 'var(--text-dim)' }}>한강변 교통 CCTV</span>
         </div>
-        <span className="font-vfd" style={{ fontSize: '0.65rem', color: 'var(--cyber-amber)' }}>
-          {cctvs.length}개
-        </span>
+        <span className="font-vfd" style={{ fontSize: '0.65rem', color: 'var(--tl-yellow)' }}>{cctvs.length}개</span>
       </div>
 
-      {/* ── CCTV 선택 목록 (가로 스크롤) ────────────────────────────────── */}
       {cctvs.length > 0 && (
         <div className="cyber-panel px-2 py-2" style={{ overflow: 'hidden' }}>
-          <div
-            className="flex gap-2 overflow-x-auto pb-1"
-            style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
-          >
+          <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
             {cctvs.map((cctv) => {
               const isSelected = cctv.id === selected?.id;
               return (
@@ -52,34 +33,27 @@ export function OlympicBlvdView() {
                   onClick={() => setSelected(cctv)}
                   className="flex flex-col items-start shrink-0 rounded-lg px-2.5 py-2 text-left"
                   style={{
-                    minWidth: 110,
-                    maxWidth: 140,
-                    background: isSelected ? 'rgba(0,212,255,0.12)' : 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${isSelected ? 'var(--cyber-cyan)' : 'var(--cyber-border)'}`,
-                    boxShadow: isSelected ? '0 0 8px rgba(0,212,255,0.2)' : 'none',
-                    transition: 'all 0.2s',
+                    minWidth: 110, maxWidth: 140,
+                    background: isSelected ? 'rgba(0,230,118,0.08)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${isSelected ? 'var(--tl-green)' : 'var(--border)'}`,
+                    transition: 'all 0.15s',
                   }}
                 >
                   {isMockCCTV(cctv.streamUrl) && (
-                    <span className="font-vfd mb-0.5" style={{ fontSize: '0.45rem', color: 'var(--cyber-amber)', letterSpacing: '0.08em' }}>
-                      MOCK
-                    </span>
+                    <span className="font-vfd mb-0.5" style={{ fontSize: '0.45rem', color: 'var(--tl-yellow)' }}>MOCK</span>
                   )}
                   <span
                     className="font-vfd text-xs leading-tight"
                     style={{
-                      color: isSelected ? 'var(--cyber-cyan)' : '#8899aa',
-                      textShadow: isSelected ? '0 0 6px #00d4ff44' : 'none',
-                      overflow: 'hidden',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical' as const,
+                      color: isSelected ? 'var(--tl-green)' : 'var(--text-secondary)',
+                      overflow: 'hidden', display: '-webkit-box',
+                      WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
                     }}
                   >
                     {cctv.name}
                   </span>
                   {cctv.roadName && (
-                    <span className="font-vfd mt-1 truncate" style={{ fontSize: '0.5rem', color: 'var(--cyber-border)' }}>
+                    <span className="font-vfd mt-1 truncate" style={{ fontSize: '0.5rem', color: 'var(--text-dim)' }}>
                       {cctv.roadName}
                     </span>
                   )}
@@ -90,7 +64,6 @@ export function OlympicBlvdView() {
         </div>
       )}
 
-      {/* ── 선택된 CCTV 스트리밍 ─────────────────────────────────────────── */}
       <CCTVPanel cctv={selected} />
     </div>
   );

@@ -72,7 +72,7 @@ export default function DashboardPage() {
     <main
       className="flex flex-col min-h-dvh max-w-md mx-auto px-3"
       style={{
-        background: 'var(--cyber-bg)',
+        background: 'var(--bg-base)',
         paddingTop: 'env(safe-area-inset-top, 12px)',
         paddingBottom: 'env(safe-area-inset-bottom, 16px)',
         gap: 10,
@@ -118,8 +118,8 @@ export default function DashboardPage() {
                 className="font-display font-black leading-none"
                 style={{
                   fontSize: '3.5rem',
-                  color: 'var(--cyber-amber)',
-                  textShadow: '0 0 14px #ff9d00, 0 0 30px #cc7700',
+                  color: 'var(--tl-yellow)',
+                  textShadow: 'none',
                 }}
               >
                 {speedKmh !== null ? Math.round(speedKmh) : '--'}
@@ -190,10 +190,10 @@ function TabBar({ activeTab, onTabChange }: { activeTab: TabId; onTabChange: (t:
             className="flex-1 py-2 rounded-lg font-vfd text-xs"
             style={{
               letterSpacing: '0.12em',
-              background: isActive ? 'rgba(0,212,255,0.12)' : 'rgba(255,255,255,0.03)',
-              border: `1px solid ${isActive ? 'var(--cyber-cyan)' : 'var(--cyber-border)'}`,
-              color: isActive ? 'var(--cyber-cyan)' : 'var(--cyber-cyan-dim)',
-              boxShadow: isActive ? '0 0 8px rgba(0,212,255,0.2)' : 'none',
+              background: isActive ? 'rgba(0,230,118,0.08)' : 'rgba(255,255,255,0.02)',
+              border: `1px solid ${isActive ? 'var(--tl-green)' : 'var(--border)'}`,
+              color: isActive ? 'var(--tl-green)' : 'var(--text-dim)',
+              boxShadow: 'none',
               transition: 'all 0.2s',
             }}
           >
@@ -245,9 +245,8 @@ function StatusBar({
             width: 8,
             height: 8,
             borderRadius: '50%',
-            background: gpsError ? '#ff3333' : isWatching ? '#00ff88' : 'var(--cyber-border)',
-            boxShadow:
-              isWatching && !gpsError ? '0 0 6px #00ff88, 0 0 12px #00cc66' : 'none',
+            background: gpsError ? 'var(--tl-red)' : isWatching ? 'var(--tl-green)' : 'var(--border)',
+            boxShadow: 'none',
           }}
         />
         <span className="font-vfd text-xs cyan-glow">
@@ -260,8 +259,8 @@ function StatusBar({
         style={{
           fontSize: '0.85rem',
           letterSpacing: '0.18em',
-          color: 'var(--cyber-cyan)',
-          textShadow: '0 0 8px #00d4ff, 0 0 20px #0088bb',
+          color: 'var(--accent)',
+          textShadow: 'none',
         }}
       >
         WILLY<span style={{ color: 'var(--cyber-amber)', margin: '0 1px' }}>·</span>NAVI

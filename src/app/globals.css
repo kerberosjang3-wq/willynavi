@@ -4,15 +4,39 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── 전역 변수 ─────────────────────────────────────────────────────────────── */
+/* ── 디자인 토큰 ─────────────────────────────────────────────────────────── */
 :root {
-  --cyber-bg:       #080c14;
-  --cyber-surface:  #0d1623;
-  --cyber-border:   #1a2d4a;
-  --cyber-cyan:     #00d4ff;
-  --cyber-cyan-dim: #003a55;
-  --cyber-amber:    #ff9d00;
-  --gps-green:      #00ff88;
+  /* 배경 */
+  --bg-base:    #121624;
+  --bg-surface: #1A1C23;
+  --bg-card:    #1E2130;
+
+  /* 테두리 */
+  --border:     #252836;
+  --border-dim: #1E2130;
+
+  /* 텍스트 */
+  --text-primary:   #C8D8E8;
+  --text-secondary: #8B9AB5;
+  --text-dim:       #4A5872;
+
+  /* Traffic Light 포인트 컬러 */
+  --tl-red:    #FF4A4A;
+  --tl-green:  #00E676;
+  --tl-yellow: #FFD600;
+
+  /* 인터랙티브 액센트 */
+  --accent: #5B9FFF;
+
+  /* 하위 호환 별칭 */
+  --cyber-bg:       var(--bg-base);
+  --cyber-surface:  var(--bg-surface);
+  --cyber-border:   var(--border);
+  --cyber-cyan:     var(--accent);
+  --cyber-cyan-dim: var(--text-dim);
+  --cyber-amber:    var(--tl-yellow);
+  --gps-green:      var(--tl-green);
+
   color-scheme: dark;
 }
 
@@ -22,8 +46,8 @@
 html, body {
   margin: 0; padding: 0;
   min-height: 100dvh;
-  background: var(--cyber-bg);
-  color: #c8d8e8;
+  background: var(--bg-base);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
   touch-action: pan-y;
@@ -36,63 +60,50 @@ html, body {
 .font-vfd     { font-family: 'Share Tech Mono', 'Courier New', monospace; }
 .font-display { font-family: 'Orbitron', 'Share Tech Mono', monospace; }
 
-/* ── 글래스모피즘 패널 ─────────────────────────────────────────────────────── */
+/* ── 미니멀 플랫 패널 ──────────────────────────────────────────────────────── */
 .glass-panel {
-  background: rgba(13, 22, 35, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(0, 212, 255, 0.12);
-  border-radius: 14px;
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
 }
 
-/* ── 사이버 표면 패널 ──────────────────────────────────────────────────────── */
 .cyber-panel {
-  background: linear-gradient(145deg, #0e1928 0%, #080f1a 100%);
-  border: 1px solid var(--cyber-border);
-  border-radius: 14px;
-  box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
 }
 
-/* ── 사이버 시안 텍스트 글로우 ────────────────────────────────────────────── */
+/* ── 텍스트 유틸 ───────────────────────────────────────────────────────────── */
 .cyan-glow {
-  color: var(--cyber-cyan);
-  text-shadow: 0 0 8px #00d4ff, 0 0 18px #0088bb;
+  color: var(--accent);
 }
 
-/* ── 앰버 숫자 글로우 ──────────────────────────────────────────────────────── */
 .amber-glow {
-  color: var(--cyber-amber);
-  text-shadow: 0 0 12px #ff9d00, 0 0 28px #cc7700;
+  color: var(--tl-yellow);
 }
 
-/* ── 시안 테두리 하이라이트 (액센트 라인) ─────────────────────────────────── */
 .cyan-border-top {
-  border-top: 1px solid rgba(0, 212, 255, 0.25);
+  border-top: 1px solid var(--border);
 }
 
 /* ── 신호 색상 ─────────────────────────────────────────────────────────────── */
-.sig-green  { color: #00ee44; text-shadow: 0 0 10px #00ee44, 0 0 22px #009933; }
-.sig-yellow { color: #ffc107; text-shadow: 0 0 10px #ffc107, 0 0 22px #cc9900; }
-.sig-red    { color: #ff3333; text-shadow: 0 0 10px #ff3333, 0 0 22px #cc0000; }
+.sig-green  { color: var(--tl-green); }
+.sig-yellow { color: var(--tl-yellow); }
+.sig-red    { color: var(--tl-red); }
 
 /* ── 안전 경고 깜빡임 ──────────────────────────────────────────────────────── */
 @keyframes safety-blink {
-  0%, 100% { opacity: 1;   color: #ff3333; text-shadow: 0 0 12px #ff3333, 0 0 28px #cc0000; }
-  50%      { opacity: 0.2; color: #ff1111; }
+  0%, 100% { opacity: 1;    color: var(--tl-red); }
+  50%      { opacity: 0.15; color: var(--tl-red); }
 }
-.safety-warning { animation: safety-blink 0.5s ease-in-out infinite; }
+.safety-warning { animation: safety-blink 0.6s ease-in-out infinite; }
 
-/* ── 도트 신호 깜빡임 ──────────────────────────────────────────────────────── */
+/* ── 도트 펄스 ─────────────────────────────────────────────────────────────── */
 @keyframes dot-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.45; transform: scale(0.82); }
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.8); }
 }
-.dot-pulse { animation: dot-pulse 0.5s ease-in-out infinite; }
+.dot-pulse { animation: dot-pulse 1s ease-in-out infinite; }
 
 /* ── 터치 대상 최소 크기 ───────────────────────────────────────────────────── */
 button, [role='button'] { min-height: 44px; min-width: 44px; }

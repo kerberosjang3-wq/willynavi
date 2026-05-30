@@ -19,44 +19,39 @@ export function VFDDisplay({
   isSafetyWarning,
 }: VFDDisplayProps) {
   const PHASE_COLOR: Record<SignalPhase, string> = {
-    GREEN:   '#00ee44',
-    YELLOW:  '#ffc107',
-    RED:     '#ff3333',
-    UNKNOWN: '#00d4ff',
+    GREEN:   '#00E676',
+    YELLOW:  '#FFD600',
+    RED:     '#FF4A4A',
+    UNKNOWN: 'var(--text-dim)',
   };
 
-  const sigColor = signalPhase ? PHASE_COLOR[signalPhase] : '#00d4ff';
+  const sigColor = signalPhase ? PHASE_COLOR[signalPhase] : 'var(--text-dim)';
 
   return (
     <div className="cyber-panel px-4 py-3 space-y-2">
       <div className="flex justify-between items-center">
-        <span className="font-vfd text-xs" style={{ color: 'var(--cyber-cyan-dim)', letterSpacing: '0.2em' }}>
+        <span className="font-vfd text-xs" style={{ color: 'var(--text-dim)', letterSpacing: '0.2em' }}>
           ROAD NAV
         </span>
-        <span className="font-vfd text-xs" style={{ color: 'var(--cyber-border)', letterSpacing: '0.1em' }}>
+        <span className="font-vfd text-xs" style={{ color: 'var(--border)', letterSpacing: '0.1em' }}>
           C-ITS v1.0
         </span>
       </div>
 
-      <div style={{ height: 1, background: 'var(--cyber-border)' }} />
+      <div style={{ height: 1, background: 'var(--border)' }} />
 
       <NavRow label="NOW" value={currentRoadName} />
       <NavRow label="FWD" value={nextIntersectionName} />
 
-      <div style={{ height: 1, background: 'var(--cyber-border)' }} />
+      <div style={{ height: 1, background: 'var(--border)' }} />
 
       <div className="flex items-center justify-between pt-0.5">
-        <span className="font-vfd text-xs" style={{ color: 'var(--cyber-cyan-dim)', letterSpacing: '0.05em' }}>
+        <span className="font-vfd text-xs" style={{ color: 'var(--text-dim)', letterSpacing: '0.05em' }}>
           신호등 정보
         </span>
         <span
           className={clsx('font-vfd text-xl tracking-widest', isSafetyWarning && 'safety-warning')}
-          style={{
-            color: isSafetyWarning ? '#ff3333' : sigColor,
-            textShadow: isSafetyWarning
-              ? '0 0 12px #ff3333, 0 0 24px #cc0000'
-              : `0 0 8px ${sigColor}, 0 0 18px ${sigColor}66`,
-          }}
+          style={{ color: isSafetyWarning ? '#FF4A4A' : sigColor }}
         >
           {signalText}
         </span>
@@ -68,20 +63,10 @@ export function VFDDisplay({
 function NavRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center gap-3">
-      <span
-        className="font-vfd text-xs w-8 shrink-0"
-        style={{ color: 'var(--cyber-cyan-dim)', letterSpacing: '0.15em' }}
-      >
+      <span className="font-vfd text-xs w-8 shrink-0" style={{ color: 'var(--text-dim)', letterSpacing: '0.15em' }}>
         {label}
       </span>
-      <span
-        className="font-vfd text-sm flex-1 truncate"
-        style={{
-          color: 'var(--cyber-cyan)',
-          textShadow: '0 0 6px #00d4ff66',
-          letterSpacing: '0.05em',
-        }}
-      >
+      <span className="font-vfd text-sm flex-1 truncate" style={{ color: 'var(--accent)', letterSpacing: '0.05em' }}>
         {value || '---'}
       </span>
     </div>
