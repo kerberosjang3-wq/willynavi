@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { SignalPhase, CCTVNode } from '@/types';
 import { CCTVPanel } from './CCTVPanel';
+import { SpeedCameraWidget } from './SpeedCameraWidget';
+import { SpeedCamera } from '@/hooks/useSpeedCamera';
 
 interface DriveModeViewProps {
   phase: SignalPhase | null;
@@ -12,6 +14,7 @@ interface DriveModeViewProps {
   cycleSeconds: number;
   speedKmh: number | null;
   activeCCTVs: CCTVNode[];
+  camera: SpeedCamera | null;
 }
 
 const PHASE_COLOR: Record<string, string> = {
@@ -124,6 +127,7 @@ export function DriveModeView({
   cycleSeconds,
   speedKmh,
   activeCCTVs,
+  camera,
 }: DriveModeViewProps) {
   const [showCCTV, setShowCCTV] = useState(false);
   const [cctvIndex, setCctvIndex] = useState(0);
@@ -213,6 +217,11 @@ export function DriveModeView({
             </button>
           </div>
         </div>
+
+        {/* 단속카메라 경고 */}
+        {camera && (
+          <SpeedCameraWidget camera={camera} speedKmh={speedKmh} />
+        )}
 
         {/* CCTV 패널 */}
         {showCCTV && (
