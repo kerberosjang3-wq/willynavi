@@ -1,11 +1,21 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { CCTVPanel } from './CCTVPanel';
-import { searchTMapPOI, getTMapRoute, GeoPoint } from '@/services/tmap';
+import { searchTMapPOI, getTMapRoute, GeoPoint, TMapRouteOption } from '@/services/tmap';
 import { filterCCTVsAlongRoute, RouteCCTV, formatDist } from '@/utils/routeUtils';
 import { SEOUL_STATIC_CCTVS } from '@/data/seoulStaticCCTVs';
 
 type Status = 'idle' | 'searching' | 'routing' | 'done' | 'error';
+
+// T-Map 경로 옵션 목록
+const ROUTE_OPTIONS: { value: TMapRouteOption; label: string }[] = [
+  { value: '0', label: '추천'         },
+  { value: '1', label: '최단거리'     },
+  { value: '2', label: '무료도로'     },
+  { value: '3', label: '고속도로 우선' },
+  { value: '4', label: '고속도로 회피' },
+  { value: '5', label: '유료도로 회피' },
+];
 
 function isMockCCTV(url: string) {
   return !url || url.includes('example-its.go.kr');
@@ -99,14 +109,15 @@ function PlaceInput({
 
 // ── 메인 컴포넌트 ────────────────────────────────────────────────────────────
 export function RouteCCTVView() {
-  const [startText, setStartText] = useState('');
-  const [endText,   setEndText]   = useState('');
-  const [startPt,   setStartPt]   = useState<GeoPoint | null>(null);
-  const [endPt,     setEndPt]     = useState<GeoPoint | null>(null);
-  const [status,    setStatus]    = useState<Status>('idle');
-  const [errMsg,    setErrMsg]    = useState('');
-  const [cctvs,     setCctvs]     = useState<RouteCCTV[]>([]);
-  const [selected,  setSelected]  = useState<RouteCCTV | null>(null);
+  const [startText,   setStartText]   = useState('');
+  const [endText,     setEndText]     = useState('');
+  const [startPt,     setStartPt]     = useState<GeoPoint | null>(null);
+  const [endPt,       setEndPt]       = useState<GeoPoint | null>(null);
+  const [routeOption, setRouteOption] = useState<TMapRouteOption>('0');
+  const [status,      setStatus]      = useState<Status>('idle');
+  const [errMsg,      setErrMsg]      = useState('');
+  const [cctvs,       setCctvs]       = useState<RouteCCTV[]>([]);
+  const [selected,    setSelected]    = useState<RouteCCTV | null>(null);
 
   const canSearch = !!startPt && !!endPt;
 
@@ -118,7 +129,10 @@ export function RouteCCTVView() {
     setSelected(null);
 
     try {
-      const polyline = await getTMapRoute(startPt, endPt);
+      const polyline = await getTMapRoute(startPt, endPt, {
+        optionValue: routeOption,
+        trafficInfo: 'Y',
+      });
       if (polyline.length < 2) throw new Error('경로를 찾을 수 없습니다');
 
       const results = filterCCTVsAlongRoute(SEOUL_STATIC_CCTVS, polyline, 300);
@@ -154,6 +168,35 @@ export function RouteCCTVView() {
       <div className="cyber-panel px-3 py-3 flex flex-col gap-2">
         <PlaceInput label="출발지" value={startText} onChange={setStartText} onSelect={setStartPt} />
         <PlaceInput label="목적지" value={endText}   onChange={setEndText}   onSelect={setEndPt} />
+
+        {/* 경로 옵션 */}
+        <div className="flex flex-col gap-1">
+          <span className="font-vfd" style={{ fontSize: '0.5rem', color: 'var(--cyber-cyan-dim)', letterSpacing: '0.1em' }}>
+            경로 옵션
+          </span>
+          <div className="flex flex-wrap gap-1">
+            {ROUTE_OPTIONS.map((opt) => {
+              const active = routeOption === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => setRouteOption(opt.value)}
+                  className="font-vfd rounded px-2 py-1"
+                  style={{
+                    fontSize: '0.5rem',
+                    letterSpacing: '0.08em',
+                    background: active ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${active ? 'var(--cyber-cyan)' : 'var(--cyber-border)'}`,
+                    color: active ? 'var(--cyber-cyan)' : 'var(--cyber-cyan-dim)',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {active ? '▶ ' : ''}{opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         <button
           onClick={handleSearch}
