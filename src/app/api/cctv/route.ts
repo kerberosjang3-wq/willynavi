@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MOCK_CCTV_NODES } from '@/data/mockNodes';
 
-// ITS CCTV API 후보 URL
-// TODO: 포털(its.go.kr/opendata) 마이페이지에서 실제 엔드포인트 URL 확인 후 맨 앞에 추가
+// ITS CCTV API 확인된 엔드포인트 (Java 샘플 소스 기준)
 const CCTV_URLS = [
-  'http://openapi.its.go.kr/api/NCCTVInfo',
-  'https://openapi.its.go.kr/api/NCCTVInfo',
+  'https://openapi.its.go.kr:9443/cctvInfo',
+  'http://openapi.its.go.kr:9443/cctvInfo',
 ];
 
 export async function GET(req: NextRequest) {
@@ -21,13 +20,14 @@ export async function GET(req: NextRequest) {
     const apiKey = process.env.ITS_API_KEY;
     if (apiKey) {
       const params = new URLSearchParams({
-        key:     apiKey,
-        ReqType: '2',
-        MinX:    String(minLng),
-        MaxX:    String(maxLng),
-        MinY:    String(minLat),
-        MaxY:    String(maxLat),
-        type:    'ex',
+        apiKey:   apiKey,   // 파라미터명 apiKey (Java 샘플 확인)
+        type:     'all',    // 도로유형: all=전체, its=국도, ex=고속도로
+        cctvType: '1',      // CCTV유형: 1=동영상, 2=이미지
+        minX:     String(minLng),
+        maxX:     String(maxLng),
+        minY:     String(minLat),
+        maxY:     String(maxLat),
+        getType:  'xml',    // 출력타입: xml
       });
 
       for (const baseUrl of CCTV_URLS) {
@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
           const res = await fetch(`${baseUrl}?${params}`, {
             next: { revalidate: 60 },
             signal: AbortSignal.timeout(5000),
+            headers: { 'Content-Type': 'text/xml;charset=UTF-8' },
           });
           if (!res.ok) continue;
 
