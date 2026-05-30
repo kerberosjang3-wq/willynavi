@@ -63,7 +63,43 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // ── 2. 경기도 GITS 실시간 신호 API 시도 (GG_API_KEY 발급 후 활성화) ─────────
+  // ── 2. 공공데이터포털 신호제어기 잔여시간 정보 서비스 ────────────────────────────
+  const seoulSignalKey = process.env.SEOUL_SIGNAL_KEY;
+  if (seoulSignalKey) {
+    const DATA_SIGNAL_URLS = [
+      'http://apis.data.go.kr/1613000/TrafficSignalInfoInqireService01/getSignalPhaseInfo',
+      'http://apis.data.go.kr/1613000/TrafficSignalInfoInqireService01/getTrafficSignalInfo',
+    ];
+    const minLat = searchParams.get('minLat');
+    const maxLat = searchParams.get('maxLat');
+    const minLng = searchParams.get('minLng');
+    const maxLng = searchParams.get('maxLng');
+    const signalParams = new URLSearchParams({
+      serviceKey: seoulSignalKey,
+      pageNo: '1',
+      numOfRows: '100',
+      type: 'json',
+      ...(intersectionId ? { itstId: intersectionId } : {}),
+      ...(minLat && minLng ? { minX: minLng, maxX: maxLng!, minY: minLat, maxY: maxLat! } : {}),
+    });
+    for (const url of DATA_SIGNAL_URLS) {
+      try {
+        const res = await fetch(`${url}?${signalParams}`, {
+          signal: AbortSignal.timeout(5000),
+        });
+        if (!res.ok) continue;
+        const data = await res.json();
+        if (data?.response?.header?.resultCode !== '00') continue;
+        const items = data?.response?.body?.items?.item ?? [];
+        const list = Array.isArray(items) ? items : items ? [items] : [];
+        if (list.length === 0) continue;
+        if (intersectionId) return NextResponse.json(list[0]);
+        return NextResponse.json({ response: { data: list } });
+      } catch { /* 다음 후보 */ }
+    }
+  }
+
+  // ── 3. 경기도 GITS 실시간 신호 API 시도 (GG_API_KEY 발급 후 활성화) ─────────
   const ggKey = process.env.GG_API_KEY;
   if (ggKey && intersectionId) {
     const GG_SIGNAL_URLS = [
@@ -92,7 +128,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // ── 3. 모든 실API 실패 → Mock 시뮬레이션으로 폴백 ───────────────────────────
+  // ── 4. 모든 실API 실패 → Mock 시뮬레이션으로 폴백 ───────────────────────────
   if (intersectionId) {
     const node = MOCK_SIGNAL_NODES.find(
       (n) => n.intersectionId === intersectionId || n.id === intersectionId,

@@ -8,10 +8,15 @@ import { VFDDisplay } from '@/components/dashboard/VFDDisplay';
 import { SignalIndicator } from '@/components/dashboard/SignalIndicator';
 import { CCTVPanel } from '@/components/dashboard/CCTVPanel';
 import { CCTVList } from '@/components/dashboard/CCTVList';
+import { OlympicBlvdView } from '@/components/dashboard/OlympicBlvdView';
 import { CCTVNode } from '@/types';
 import { haversineDistance } from '@/utils/geo.utils';
 
+type TabId = 'nav' | 'olympic';
+
 export default function DashboardPage() {
+  const [activeTab, setActiveTab] = useState<TabId>('nav');
+
   const { position, error: gpsError, isWatching } = useGeolocation();
   const { nodes: nearbyNodes, cctvSource, signalSource } = useNearbyNodes(position);
   const snapping = useGPSSnapping(position, { nodes: nearbyNodes, useMock: false });
@@ -62,74 +67,115 @@ export default function DashboardPage() {
         gap: 10,
       }}
     >
-      {/* ── 상태 표시줄 ────────────────────────────────────────────────── */}
-      <StatusBar
-        isWatching={isWatching}
-        gpsError={gpsError}
-        accuracy={position?.accuracy ?? null}
-        cctvCount={allNearbyCCTVs.length}
-        cctvSource={cctvSource}
-        signalSource={signalSource}
-      />
+      {/* ── 탭 바 ──────────────────────────────────────────────────────── */}
+      <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {/* ── VFD 도로 정보 패널 ─────────────────────────────────────────── */}
-      <VFDDisplay
-        currentRoadName={snapping.currentRoadName}
-        nextIntersectionName={snapping.nextIntersectionName}
-        signalText={displayText}
-        signalPhase={signal?.currentPhase ?? null}
-        isSafetyWarning={isSafetyWarning}
-      />
+      {/* ── 상태 표시줄 (NAV 탭만) ─────────────────────────────────────── */}
+      {activeTab === 'nav' && (
+        <StatusBar
+          isWatching={isWatching}
+          gpsError={gpsError}
+          accuracy={position?.accuracy ?? null}
+          cctvCount={allNearbyCCTVs.length}
+          cctvSource={cctvSource}
+          signalSource={signalSource}
+        />
+      )}
 
-      {/* ── 2열: 속도 패널 + 신호 인디케이터 ──────────────────────────── */}
-      <div className="grid grid-cols-2 gap-2.5" style={{ minHeight: 140 }}>
-        {/* 속도 패널 */}
-        <div className="cyber-panel flex flex-col items-center justify-center gap-1 px-2 py-3">
-          <span
-            className="font-vfd text-xs"
-            style={{ color: 'var(--cyber-cyan-dim)', letterSpacing: '0.2em' }}
-          >
-            SPEED
-          </span>
-          <span
-            className="font-display font-black leading-none"
+      {/* ── NAV 탭 콘텐츠 ──────────────────────────────────────────────── */}
+      {activeTab === 'nav' && (
+        <>
+          {/* VFD 도로 정보 패널 */}
+          <VFDDisplay
+            currentRoadName={snapping.currentRoadName}
+            nextIntersectionName={snapping.nextIntersectionName}
+            signalText={displayText}
+            signalPhase={signal?.currentPhase ?? null}
+            isSafetyWarning={isSafetyWarning}
+          />
+
+          {/* 2열: 속도 패널 + 신호 인디케이터 */}
+          <div className="grid grid-cols-2 gap-2.5" style={{ minHeight: 140 }}>
+            <div className="cyber-panel flex flex-col items-center justify-center gap-1 px-2 py-3">
+              <span
+                className="font-vfd text-xs"
+                style={{ color: 'var(--cyber-cyan-dim)', letterSpacing: '0.2em' }}
+              >
+                SPEED
+              </span>
+              <span
+                className="font-display font-black leading-none"
+                style={{
+                  fontSize: '3.5rem',
+                  color: 'var(--cyber-amber)',
+                  textShadow: '0 0 14px #ff9d00, 0 0 30px #cc7700',
+                }}
+              >
+                {speedKmh !== null ? Math.round(speedKmh) : '--'}
+              </span>
+              <span className="font-vfd text-xs" style={{ color: 'var(--cyber-cyan-dim)' }}>
+                km/h
+              </span>
+            </div>
+            <SignalIndicator
+              phase={signal?.currentPhase ?? null}
+              isSafetyWarning={isSafetyWarning}
+              remainingSeconds={signal?.remainingSeconds ?? null}
+              intersectionName={signal?.name}
+            />
+          </div>
+
+          {/* 주변 CCTV 선택 목록 */}
+          <CCTVList
+            cctvs={allNearbyCCTVs}
+            selectedId={displayedCCTV?.id ?? null}
+            recommendedId={recommendedCCTV?.id ?? null}
+            onSelect={(cctv) => setUserSelectedCCTV(cctv)}
+            isWatching={isWatching}
+          />
+
+          {/* CCTV 스트리밍 패널 */}
+          <CCTVPanel cctv={displayedCCTV} />
+        </>
+      )}
+
+      {/* ── 올림픽대로 탭 콘텐츠 ───────────────────────────────────────── */}
+      {activeTab === 'olympic' && <OlympicBlvdView />}
+    </main>
+  );
+}
+
+// ─── 탭 바 ──────────────────────────────────────────────────────────────────
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'nav',     label: 'NAV' },
+  { id: 'olympic', label: '올림픽대로' },
+];
+
+function TabBar({ activeTab, onTabChange }: { activeTab: TabId; onTabChange: (t: TabId) => void }) {
+  return (
+    <div className="flex gap-2">
+      {TABS.map((tab) => {
+        const isActive = tab.id === activeTab;
+        return (
+          <button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            className="flex-1 py-2 rounded-lg font-vfd text-xs"
             style={{
-              fontSize: '3.5rem',
-              color: 'var(--cyber-amber)',
-              textShadow: '0 0 14px #ff9d00, 0 0 30px #cc7700',
+              letterSpacing: '0.12em',
+              background: isActive ? 'rgba(0,212,255,0.12)' : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${isActive ? 'var(--cyber-cyan)' : 'var(--cyber-border)'}`,
+              color: isActive ? 'var(--cyber-cyan)' : 'var(--cyber-cyan-dim)',
+              boxShadow: isActive ? '0 0 8px rgba(0,212,255,0.2)' : 'none',
+              transition: 'all 0.2s',
             }}
           >
-            {speedKmh !== null ? Math.round(speedKmh) : '--'}
-          </span>
-          <span
-            className="font-vfd text-xs"
-            style={{ color: 'var(--cyber-cyan-dim)' }}
-          >
-            km/h
-          </span>
-        </div>
-
-        {/* 신호 인디케이터 */}
-        <SignalIndicator
-          phase={signal?.currentPhase ?? null}
-          isSafetyWarning={isSafetyWarning}
-          remainingSeconds={signal?.remainingSeconds ?? null}
-          intersectionName={signal?.name}
-        />
-      </div>
-
-      {/* ── 주변 CCTV 선택 목록 ───────────────────────────────────────── */}
-      <CCTVList
-        cctvs={allNearbyCCTVs}
-        selectedId={displayedCCTV?.id ?? null}
-        recommendedId={recommendedCCTV?.id ?? null}
-        onSelect={(cctv) => setUserSelectedCCTV(cctv)}
-        isWatching={isWatching}
-      />
-
-      {/* ── CCTV 스트리밍 패널 ─────────────────────────────────────────── */}
-      <CCTVPanel cctv={displayedCCTV} />
-    </main>
+            {isActive && <span style={{ marginRight: 4 }}>▶</span>}
+            {tab.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
