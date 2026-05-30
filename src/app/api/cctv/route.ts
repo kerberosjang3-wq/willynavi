@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
       for (const baseUrl of ITS_CCTV_URLS) {
         try {
           const res = await fetch(`${baseUrl}?${params}`, {
-            next: { revalidate: 60 },
+            next: { revalidate: 30 },
             signal: AbortSignal.timeout(5000),
             headers: { 'Content-Type': 'text/xml;charset=UTF-8' },
           });
