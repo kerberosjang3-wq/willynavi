@@ -49,10 +49,11 @@ export default function DashboardPage() {
       .map((c) => ({ ...c, distance: Math.round(haversineDistance(position, c.coordinate)) }))
       .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
   }, [nearbyNodes, position]);
-  const { signal, isSafetyWarning, displayText } = useCITSSignal(
+  const { signal, isSafetyWarning, displayText, approachDir } = useCITSSignal(
     snapping.activeSignal?.intersectionId ?? null,
     snapping.isInTriggerZone,
     snapping.activeSignal,
+    position?.heading ?? null,
   );
 
   useEffect(() => {
@@ -131,6 +132,7 @@ export default function DashboardPage() {
               isSafetyWarning={isSafetyWarning}
               remainingSeconds={signal?.remainingSeconds ?? null}
               intersectionName={signal?.name}
+              approachDir={approachDir}
             />
           </div>
 
@@ -156,6 +158,7 @@ export default function DashboardPage() {
         <SignalListView
           signals={allNearbySignals}
           isWatching={isWatching}
+          heading={position?.heading ?? null}
         />
       )}
     </main>

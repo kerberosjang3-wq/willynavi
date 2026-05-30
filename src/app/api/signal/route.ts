@@ -176,20 +176,33 @@ interface SeoulV2XSignal {
   wtPdsgRmdrCs: number | null;
 }
 
-// 직진 방향 중 가장 짧은 잔여시간 → 현재 현시 종료까지 남은 시간
+// deciseconds → seconds 변환 (null이면 undefined)
+function ds(v: number | null): number | undefined {
+  return v !== null && v > 0 ? Math.round(v / 10) : undefined;
+}
+
+// 방향별 잔여시간 추출
+function v2xDirectional(s: SeoulV2XSignal) {
+  return {
+    nt: ds(s.ntStsgRmdrCs),
+    et: ds(s.etStsgRmdrCs),
+    st: ds(s.stStsgRmdrCs),
+    wt: ds(s.wtStsgRmdrCs),
+  };
+}
+
+// 활성 방향 중 최솟값 → 종합 잔여시간
 function v2xRemainingSeconds(s: SeoulV2XSignal): number {
   const vals = [s.ntStsgRmdrCs, s.etStsgRmdrCs, s.stStsgRmdrCs, s.wtStsgRmdrCs]
     .filter((v): v is number => v !== null && v > 0);
   if (vals.length === 0) return 0;
-  return Math.round(Math.min(...vals) / 10); // deciseconds → seconds
+  return Math.round(Math.min(...vals) / 10);
 }
 
-// 잔여시간이 짧을수록 직진신호 종료 임박 → GREEN으로 간주
-// (V2X SPAT는 현시 phase 별도 제공 안 함 → 경험적 추정)
+// V2X SPAT는 현시 phase를 직접 제공하지 않음 → 활성 방향 유무로 추정
 function v2xPhase(s: SeoulV2XSignal): 'GREEN' | 'YELLOW' | 'RED' {
   const sec = v2xRemainingSeconds(s);
   if (sec <= 3) return 'YELLOW';
-  // 직진 신호가 null이면 해당 방향 RED
   const hasActive = [s.ntStsgRmdrCs, s.etStsgRmdrCs, s.stStsgRmdrCs, s.wtStsgRmdrCs]
     .some((v) => v !== null && v > 0);
   return hasActive ? 'GREEN' : 'RED';
@@ -197,11 +210,12 @@ function v2xPhase(s: SeoulV2XSignal): 'GREEN' | 'YELLOW' | 'RED' {
 
 function v2xToSignalNode(s: SeoulV2XSignal): Partial<SignalNode> {
   return {
-    intersectionId: s.itstId,
-    currentPhase:   v2xPhase(s),
+    intersectionId:  s.itstId,
+    currentPhase:    v2xPhase(s),
     remainingSeconds: v2xRemainingSeconds(s),
-    cycleSeconds:   90,
-    lastUpdated:    Date.now(),
+    cycleSeconds:    90,
+    lastUpdated:     Date.now(),
+    directional:     v2xDirectional(s),
   };
 }
 

@@ -1,21 +1,34 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { SignalNode, SignalPhase } from '@/types';
+import { headingToV2XDir, pickDirectionalRemaining } from '@/utils/geo.utils';
 
 interface UseCITSSignalResult {
   signal: SignalNode | null;
-  isSafetyWarning: boolean;  // 잔여 5초 이하 경고
-  displayText: string;       // VFD 표시용 문자열
+  isSafetyWarning: boolean;
+  displayText: string;
+  approachDir: string | null; // 접근 방향 레이블 (북향/동향/남향/서향)
 }
 
 const SAFETY_MARGIN_SEC = 5;
 const POLL_INTERVAL_MS = 2_000;
+const DIR_LABEL: Record<string, string> = { nt: '북향', et: '동향', st: '남향', wt: '서향' };
 
-// 교차로 트리거 존 진입 시에만 신호 API 를 구독/해제 (Sub/Unsub 최적화)
+// heading으로 방향별 잔여시간을 선택해 signal을 보정
+function applyDirectional(node: SignalNode, heading: number | null): SignalNode {
+  if (!node.directional || heading === null) return node;
+  const rem = pickDirectionalRemaining(node.directional, heading);
+  if (rem === undefined) return node;
+  // 잔여시간 3초 이하 → YELLOW, 0이면 RED, 나머지 → GREEN
+  const phase = rem <= 3 ? 'YELLOW' : rem > 0 ? 'GREEN' : 'RED';
+  return { ...node, remainingSeconds: rem, currentPhase: phase };
+}
+
 export function useCITSSignal(
   intersectionId: string | null,
   isInTriggerZone: boolean,
   initialSignal?: SignalNode | null,
+  heading?: number | null,
 ): UseCITSSignalResult {
   const [signal, setSignal] = useState<SignalNode | null>(initialSignal ?? null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -58,12 +71,19 @@ export function useCITSSignal(
     if (!isInTriggerZone) setSignal(initialSignal ?? null);
   }, [initialSignal, isInTriggerZone]);
 
+  // heading이 있고 V2X 방향 데이터가 있으면 접근 방향 신호 보정
+  const h = heading ?? null;
+  const directedSignal = signal ? applyDirectional(signal, h) : null;
+  const approachDir = signal?.directional && h !== null
+    ? DIR_LABEL[headingToV2XDir(h)] ?? null
+    : null;
+
   const isSafetyWarning =
-    signal !== null && signal.remainingSeconds <= SAFETY_MARGIN_SEC;
+    directedSignal !== null && directedSignal.remainingSeconds <= SAFETY_MARGIN_SEC;
 
-  const displayText = buildDisplayText(signal, isSafetyWarning);
+  const displayText = buildDisplayText(directedSignal, isSafetyWarning);
 
-  return { signal, isSafetyWarning, displayText };
+  return { signal: directedSignal, isSafetyWarning, displayText, approachDir };
 }
 
 function buildDisplayText(signal: SignalNode | null, safetyWarning: boolean): string {

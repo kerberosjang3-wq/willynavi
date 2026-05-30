@@ -37,6 +37,14 @@ export interface CCTVNode extends BaseNode {
   roadName?: string;
 }
 
+// ─── 신호등 방향별 잔여시간 (V2X SPAT, 단위: 초) ──────────────────────────────
+export interface DirectionalTiming {
+  nt?: number;  // 북향(직진) North through
+  et?: number;  // 동향(직진) East through
+  st?: number;  // 남향(직진) South through
+  wt?: number;  // 서향(직진) West through
+}
+
 // ─── 신호등(교차로) 노드 ────────────────────────────────────────────────────────
 export interface SignalNode extends BaseNode {
   type: 'SIGNAL';
@@ -44,7 +52,8 @@ export interface SignalNode extends BaseNode {
   currentPhase: SignalPhase;
   remainingSeconds: number;
   cycleSeconds: number;
-  lastUpdated: number;    // Unix ms
+  lastUpdated: number;       // Unix ms
+  directional?: DirectionalTiming; // V2X 방향별 잔여시간 (있을 때만)
 }
 
 export type TrafficNode = CCTVNode | SignalNode;

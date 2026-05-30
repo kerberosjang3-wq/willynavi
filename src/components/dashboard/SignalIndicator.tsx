@@ -7,6 +7,7 @@ interface SignalIndicatorProps {
   isSafetyWarning: boolean;
   remainingSeconds: number | null;
   intersectionName?: string;
+  approachDir?: string | null;  // 접근 방향 (북향/동향/남향/서향)
 }
 
 export function SignalIndicator({
@@ -14,18 +15,29 @@ export function SignalIndicator({
   isSafetyWarning,
   remainingSeconds,
   intersectionName,
+  approachDir,
 }: SignalIndicatorProps) {
   const color = phase ? phaseColor(phase) : 'var(--cyber-border)';
 
   return (
     <div className="cyber-panel px-3 py-3 h-full flex flex-col gap-2">
-      {/* 교차로명 */}
-      <span
-        className="font-vfd text-xs truncate text-center w-full"
-        style={{ color: 'var(--cyber-cyan-dim)', letterSpacing: '0.06em' }}
-      >
-        {intersectionName ?? '신호 없음'}
-      </span>
+      {/* 교차로명 + 접근 방향 */}
+      <div className="flex items-center justify-center gap-1 w-full">
+        <span
+          className="font-vfd text-xs truncate"
+          style={{ color: 'var(--cyber-cyan-dim)', letterSpacing: '0.06em' }}
+        >
+          {intersectionName ?? '신호 없음'}
+        </span>
+        {approachDir && (
+          <span
+            className="font-vfd shrink-0"
+            style={{ fontSize: '0.5rem', color: 'var(--cyber-amber)', letterSpacing: '0.08em' }}
+          >
+            {approachDir}
+          </span>
+        )}
+      </div>
 
       {/* 신호등 + 카운트다운 */}
       <div className="flex items-center justify-center gap-3 flex-1">

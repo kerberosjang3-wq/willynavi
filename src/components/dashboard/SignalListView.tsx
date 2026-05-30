@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { SignalNode, SignalPhase } from '@/types';
+import { headingToV2XDir, pickDirectionalRemaining } from '@/utils/geo.utils';
 
 const PHASE_COLOR: Record<SignalPhase, string> = {
   GREEN:   '#00ff88',
@@ -36,12 +37,15 @@ function phaseDuration(phase: SignalPhase, cycle: number): number {
   return cycle;
 }
 
+const DIR_LABEL: Record<string, string> = { nt: '북향', et: '동향', st: '남향', wt: '서향' };
+
 interface Props {
   signals: SignalNode[];
   isWatching: boolean;
+  heading?: number | null; // GPS 진행 방향
 }
 
-export function SignalListView({ signals, isWatching }: Props) {
+export function SignalListView({ signals, isWatching, heading = null }: Props) {
   // 신호별 로컬 시뮬레이션 상태
   const [simMap, setSimMap] = useState<Map<string, SimState>>(() => new Map());
   const prevIdsRef = useRef<string>('');
@@ -139,9 +143,15 @@ export function SignalListView({ signals, isWatching }: Props) {
         {signals.map((node, idx) => {
           const sim = simMap.get(node.id);
           const phase = sim?.phase ?? node.currentPhase;
-          const rem   = sim?.remaining ?? 0;
           const color = PHASE_COLOR[phase];
           const dist  = node.distance;
+
+          // V2X 방향 데이터가 있으면 진행 방향 기반 잔여시간 우선 사용
+          const dirRem = pickDirectionalRemaining(node.directional, heading);
+          const rem = dirRem ?? sim?.remaining ?? 0;
+          const approachDir = node.directional && heading !== null
+            ? DIR_LABEL[headingToV2XDir(heading)] ?? null
+            : null;
 
           return (
             <div
@@ -174,8 +184,13 @@ export function SignalListView({ signals, isWatching }: Props) {
                   <span className="font-vfd" style={{ fontSize: '0.5rem', color }}>
                     {PHASE_LABEL[phase]}
                   </span>
-                  {dist !== undefined && (
+                  {approachDir && (
                     <span className="font-vfd" style={{ fontSize: '0.5rem', color: 'var(--cyber-amber)' }}>
+                      {approachDir}
+                    </span>
+                  )}
+                  {dist !== undefined && (
+                    <span className="font-vfd" style={{ fontSize: '0.5rem', color: 'var(--cyber-cyan-dim)' }}>
                       {dist < 1000 ? `${dist}m` : `${(dist / 1000).toFixed(1)}km`}
                     </span>
                   )}

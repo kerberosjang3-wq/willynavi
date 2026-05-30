@@ -62,3 +62,30 @@ export function isWithinBBox(
 }
 
 export const DOT_PRODUCT_THRESHOLD_60 = Math.cos(toRad(60)); // ≈ 0.5
+
+// 진행 방향(heading, 0=북 시계방향)을 V2X 방향 키로 변환
+// nt=북향, et=동향, st=남향, wt=서향
+export function headingToV2XDir(heading: number): 'nt' | 'et' | 'st' | 'wt' {
+  const h = ((heading % 360) + 360) % 360; // 0~360 정규화
+  if (h < 45 || h >= 315) return 'nt';
+  if (h < 135) return 'et';
+  if (h < 225) return 'st';
+  return 'wt';
+}
+
+// DirectionalTiming에서 특정 방향의 잔여시간 추출
+// heading이 없으면 활성 방향 중 최솟값 반환
+export function pickDirectionalRemaining(
+  directional: { nt?: number; et?: number; st?: number; wt?: number } | undefined,
+  heading: number | null,
+): number | undefined {
+  if (!directional) return undefined;
+  if (heading !== null) {
+    const dir = headingToV2XDir(heading);
+    return directional[dir];
+  }
+  // heading 없으면 활성 방향 중 최솟값
+  const vals = [directional.nt, directional.et, directional.st, directional.wt]
+    .filter((v): v is number => v !== undefined && v > 0);
+  return vals.length > 0 ? Math.min(...vals) : undefined;
+}
