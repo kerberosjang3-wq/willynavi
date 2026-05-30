@@ -155,7 +155,6 @@ export default function DashboardPage() {
       {activeTab === 'signal' && (
         <SignalListView
           signals={allNearbySignals}
-          position={position}
           isWatching={isWatching}
         />
       )}

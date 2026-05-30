@@ -1,6 +1,6 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { SignalNode, SignalPhase, GPSPosition } from '@/types';
+import { useEffect, useRef, useState } from 'react';
+import { SignalNode, SignalPhase } from '@/types';
 
 const PHASE_COLOR: Record<SignalPhase, string> = {
   GREEN:   '#00ff88',
@@ -15,25 +15,80 @@ const PHASE_LABEL: Record<SignalPhase, string> = {
   UNKNOWN: '---',
 };
 
+// GREEN → YELLOW → RED → GREEN ...
+const NEXT_PHASE: Record<string, SignalPhase> = {
+  GREEN:   'YELLOW',
+  YELLOW:  'RED',
+  RED:     'GREEN',
+  UNKNOWN: 'UNKNOWN',
+};
+
+interface SimState {
+  phase: SignalPhase;
+  remaining: number;
+  cycleSeconds: number;
+}
+
+function phaseDuration(phase: SignalPhase, cycle: number): number {
+  if (phase === 'YELLOW') return 3;
+  if (phase === 'GREEN')  return Math.round(cycle * 0.45);
+  if (phase === 'RED')    return Math.round(cycle * 0.45);
+  return cycle;
+}
+
 interface Props {
   signals: SignalNode[];
-  position: GPSPosition | null;
   isWatching: boolean;
 }
 
-export function SignalListView({ signals, position, isWatching }: Props) {
-  // 1초마다 카운트다운
-  const [tick, setTick] = useState(0);
+export function SignalListView({ signals, isWatching }: Props) {
+  // 신호별 로컬 시뮬레이션 상태
+  const [simMap, setSimMap] = useState<Map<string, SimState>>(() => new Map());
+  const prevIdsRef = useRef<string>('');
+
+  // signals가 바뀌면(새 목록 수신) 시뮬레이션 상태 초기화
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    const ids = signals.map((s) => s.id).join(',');
+    if (ids === prevIdsRef.current) return;
+    prevIdsRef.current = ids;
+
+    const m = new Map<string, SimState>();
+    for (const s of signals) {
+      const elapsed = Math.floor((Date.now() - s.lastUpdated) / 1000);
+      const rem = Math.max(0, s.remainingSeconds - elapsed);
+      m.set(s.id, {
+        phase:         s.currentPhase !== 'UNKNOWN' ? s.currentPhase : 'RED',
+        remaining:     rem,
+        cycleSeconds:  s.cycleSeconds || 90,
+      });
+    }
+    setSimMap(m);
+  }, [signals]);
+
+  // 1초 티커 — 카운트다운 + 위상 전환
+  useEffect(() => {
+    const id = setInterval(() => {
+      setSimMap((prev) => {
+        const next = new Map(prev);
+        for (const [key, st] of next) {
+          if (st.phase === 'UNKNOWN') continue;
+          const newRem = st.remaining - 1;
+          if (newRem <= 0) {
+            const nextPhase = NEXT_PHASE[st.phase];
+            next.set(key, {
+              ...st,
+              phase:     nextPhase,
+              remaining: phaseDuration(nextPhase, st.cycleSeconds),
+            });
+          } else {
+            next.set(key, { ...st, remaining: newRem });
+          }
+        }
+        return next;
+      });
+    }, 1000);
     return () => clearInterval(id);
   }, []);
-
-  // 경과 시간 기반 잔여시간 계산
-  function remaining(node: SignalNode): number {
-    const elapsed = Math.floor((Date.now() - node.lastUpdated) / 1000);
-    return Math.max(0, node.remainingSeconds - elapsed);
-  }
 
   if (!isWatching && signals.length === 0) {
     return (
@@ -82,12 +137,11 @@ export function SignalListView({ signals, position, isWatching }: Props) {
       {/* 신호등 목록 */}
       <div className="cyber-panel px-3 py-2 flex flex-col" style={{ gap: 0 }}>
         {signals.map((node, idx) => {
-          const rem = remaining(node);
-          // tick 사용하여 렌더 트리거 (lint 우회)
-          void tick;
-          const phase = node.currentPhase;
+          const sim = simMap.get(node.id);
+          const phase = sim?.phase ?? node.currentPhase;
+          const rem   = sim?.remaining ?? 0;
           const color = PHASE_COLOR[phase];
-          const dist = node.distance;
+          const dist  = node.distance;
 
           return (
             <div
@@ -100,12 +154,11 @@ export function SignalListView({ signals, position, isWatching }: Props) {
               {/* 신호 색상 도트 */}
               <div
                 style={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: '50%',
+                  width: 12, height: 12, borderRadius: '50%',
                   background: color,
-                  boxShadow: phase !== 'UNKNOWN' ? `0 0 6px ${color}` : 'none',
+                  boxShadow: phase !== 'UNKNOWN' ? `0 0 7px ${color}` : 'none',
                   flexShrink: 0,
+                  transition: 'background 0.3s, box-shadow 0.3s',
                 }}
               />
 
@@ -135,7 +188,12 @@ export function SignalListView({ signals, position, isWatching }: Props) {
                   <>
                     <span
                       className="font-display font-black"
-                      style={{ fontSize: '1.4rem', color, textShadow: `0 0 8px ${color}66`, lineHeight: 1 }}
+                      style={{
+                        fontSize: '1.4rem', lineHeight: 1,
+                        color,
+                        textShadow: `0 0 8px ${color}66`,
+                        transition: 'color 0.3s',
+                      }}
                     >
                       {rem}
                     </span>
