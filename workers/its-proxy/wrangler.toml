@@ -2,8 +2,8 @@ name = "willynavi-its-proxy"
 main = "src/index.js"
 compatibility_date = "2024-09-23"
 
-# 한국 인천(ICN) 리전 우선 배포
-smart_placement = { enabled = true }
+[placement]
+mode = "smart"
 
 # ITS_API_KEY 는 secret으로 설정:
 #   wrangler secret put ITS_API_KEY

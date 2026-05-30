@@ -51,8 +51,13 @@ export function useNearbyNodes(position: GPSPosition | null): NearbyNodesResult 
       maxLng: String(position.lng + BBOX_DEG),
     };
 
-    // CCTV 조회
-    fetch(`/api/cctv?${new URLSearchParams({ minX: q.minX, maxX: q.maxX, minY: q.minY, maxY: q.maxY })}`)
+    // CCTV 조회 — CF Worker 직접 호출(한국 엣지) 우선, 없으면 Vercel API 폴백
+    const cfUrl = process.env.NEXT_PUBLIC_CF_WORKER_URL;
+    const cctvEndpoint = cfUrl
+      ? `${cfUrl}/cctv?${new URLSearchParams({ minX: q.minX, maxX: q.maxX, minY: q.minY, maxY: q.maxY })}`
+      : `/api/cctv?${new URLSearchParams({ minX: q.minX, maxX: q.maxX, minY: q.minY, maxY: q.maxY })}`;
+
+    fetch(cctvEndpoint)
       .then((r) => r.json())
       .then((data) => {
         const rows: RawCCTV[] = data?.response?.data ?? [];
@@ -68,11 +73,35 @@ export function useNearbyNodes(position: GPSPosition | null): NearbyNodesResult 
             roadName: r.roadsectionid,
           }));
         setCctvNodes(nodes);
-        // mock 노드 ID 패턴(cctv-00x)과 실 ITS ID 구분
         const isMock = nodes.length === 0 || nodes.every((n) => n.id.match(/its-cctv-\d+/));
         setCctvSource(isMock ? 'mock' : 'its');
       })
-      .catch(() => setCctvSource('mock'));
+      .catch(() => {
+        // CF Worker 실패 시 Vercel API 폴백
+        if (cfUrl) {
+          fetch(`/api/cctv?${new URLSearchParams({ minX: q.minX, maxX: q.maxX, minY: q.minY, maxY: q.maxY })}`)
+            .then((r) => r.json())
+            .then((data) => {
+              const rows: RawCCTV[] = data?.response?.data ?? [];
+              const nodes: CCTVNode[] = rows
+                .filter((r) => r.cctvid && r.coordy && r.coordx)
+                .map((r) => ({
+                  id: `its-${r.cctvid}`,
+                  type: 'CCTV' as const,
+                  name: r.cctvname ?? '이름없음',
+                  coordinate: { lat: parseFloat(r.coordy), lng: parseFloat(r.coordx) },
+                  streamUrl: r.cctvurl ?? '',
+                  source: 'ITS' as const,
+                  roadName: r.roadsectionid,
+                }));
+              setCctvNodes(nodes);
+              setCctvSource('its');
+            })
+            .catch(() => setCctvSource('mock'));
+        } else {
+          setCctvSource('mock');
+        }
+      });
 
     // 교차로(신호) 노드 조회
     fetch(`/api/intersections?${new URLSearchParams({ minLat: q.minLat, maxLat: q.maxLat, minLng: q.minLng, maxLng: q.maxLng })}`)

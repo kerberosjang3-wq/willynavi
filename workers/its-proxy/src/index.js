@@ -55,7 +55,7 @@ async function handleCCTV(url, env) {
 
   const res = await fetch(
     `https://openapi.its.go.kr:9443/cctvInfo?${params}`,
-    { signal: AbortSignal.timeout(8000) },
+    { signal: AbortSignal.timeout(25000) },
   );
 
   if (!res.ok) return json({ error: `ITS HTTP ${res.status}` }, 502);
