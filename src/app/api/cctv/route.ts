@@ -50,16 +50,21 @@ export async function GET(req: NextRequest) {
       for (const baseUrl of ITS_CCTV_URLS) {
         try {
           const res = await fetch(`${baseUrl}?${params}`, {
-            next: { revalidate: 30 },
-            signal: AbortSignal.timeout(5000),
-            headers: { 'Content-Type': 'text/xml;charset=UTF-8' },
+            cache: 'no-store',
+            signal: AbortSignal.timeout(8000),
           });
-          if (!res.ok) continue;
+          if (!res.ok) {
+            console.error(`[CCTV] ITS ${baseUrl} → HTTP ${res.status}`);
+            continue;
+          }
           const rows = parseITSXML(await res.text());
           if (rows.length > 0) {
             return NextResponse.json({ response: { data: rows }, source: 'its' });
           }
-        } catch { /* 다음 후보 */ }
+          console.error(`[CCTV] ITS ${baseUrl} → 파싱 결과 0건`);
+        } catch (e) {
+          console.error(`[CCTV] ITS ${baseUrl} → 예외:`, (e as Error).message);
+        }
       }
     }
 
