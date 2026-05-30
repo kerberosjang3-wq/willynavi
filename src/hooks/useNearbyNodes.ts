@@ -2,9 +2,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CCTVNode, GPSPosition, SignalNode, TrafficNode } from '@/types';
 import { haversineDistance } from '@/utils/geo.utils';
+import { SEOUL_STATIC_CCTVS } from '@/data/seoulStaticCCTVs';
 
 const REFETCH_THRESHOLD_M = 500;
-const BBOX_DEG = 0.05;   // ~5km — 고속도로 CCTV 커버 위해 확장
+const BBOX_DEG = 0.05;
+
+// bbox 안의 정적 CCTV 필터링
+function staticCCTVsInBbox(minX: number, maxX: number, minY: number, maxY: number): CCTVNode[] {
+  return SEOUL_STATIC_CCTVS.filter(
+    (c) => c.coordinate.lng >= minX && c.coordinate.lng <= maxX &&
+           c.coordinate.lat >= minY && c.coordinate.lat <= maxY,
+  );
+}
 
 export type ApiSource = 'its' | 'gg' | 'mock' | 'loading';
 
@@ -57,49 +66,54 @@ export function useNearbyNodes(position: GPSPosition | null): NearbyNodesResult 
       ? `${cfUrl}/cctv?${new URLSearchParams({ minX: q.minX, maxX: q.maxX, minY: q.minY, maxY: q.maxY })}`
       : `/api/cctv?${new URLSearchParams({ minX: q.minX, maxX: q.maxX, minY: q.minY, maxY: q.maxY })}`;
 
+    const minX = parseFloat(q.minX), maxX = parseFloat(q.maxX);
+    const minY = parseFloat(q.minY), maxY = parseFloat(q.maxY);
+
+    const applyStaticFallback = () => {
+      const staticNodes = staticCCTVsInBbox(minX, maxX, minY, maxY);
+      if (staticNodes.length > 0) {
+        setCctvNodes(staticNodes);
+        setCctvSource('its');
+      } else {
+        setCctvSource('mock');
+      }
+    };
+
+    const parseAndSet = (data: unknown) => {
+      const rows: RawCCTV[] = (data as { response?: { data?: RawCCTV[] } })?.response?.data ?? [];
+      const apiNodes: CCTVNode[] = rows
+        .filter((r) => r.cctvid && r.coordy && r.coordx)
+        .map((r) => ({
+          id: `its-${r.cctvid}`,
+          type: 'CCTV' as const,
+          name: r.cctvname ?? '이름없음',
+          coordinate: { lat: parseFloat(r.coordy), lng: parseFloat(r.coordx) },
+          streamUrl: r.cctvurl ?? '',
+          source: 'ITS' as const,
+          roadName: r.roadsectionid,
+        }));
+
+      const isMock = apiNodes.length === 0 || apiNodes.every((n) => /its-cctv-\d+/.test(n.id));
+      if (!isMock) {
+        setCctvNodes(apiNodes);
+        setCctvSource('its');
+      } else {
+        applyStaticFallback();
+      }
+    };
+
     fetch(cctvEndpoint)
       .then((r) => r.json())
-      .then((data) => {
-        const rows: RawCCTV[] = data?.response?.data ?? [];
-        const nodes: CCTVNode[] = rows
-          .filter((r) => r.cctvid && r.coordy && r.coordx)
-          .map((r) => ({
-            id: `its-${r.cctvid}`,
-            type: 'CCTV' as const,
-            name: r.cctvname ?? '이름없음',
-            coordinate: { lat: parseFloat(r.coordy), lng: parseFloat(r.coordx) },
-            streamUrl: r.cctvurl ?? '',
-            source: 'ITS' as const,
-            roadName: r.roadsectionid,
-          }));
-        setCctvNodes(nodes);
-        const isMock = nodes.length === 0 || nodes.every((n) => n.id.match(/its-cctv-\d+/));
-        setCctvSource(isMock ? 'mock' : 'its');
-      })
+      .then(parseAndSet)
       .catch(() => {
-        // CF Worker 실패 시 Vercel API 폴백
+        // CF Worker 실패 → Vercel API 재시도
         if (cfUrl) {
           fetch(`/api/cctv?${new URLSearchParams({ minX: q.minX, maxX: q.maxX, minY: q.minY, maxY: q.maxY })}`)
             .then((r) => r.json())
-            .then((data) => {
-              const rows: RawCCTV[] = data?.response?.data ?? [];
-              const nodes: CCTVNode[] = rows
-                .filter((r) => r.cctvid && r.coordy && r.coordx)
-                .map((r) => ({
-                  id: `its-${r.cctvid}`,
-                  type: 'CCTV' as const,
-                  name: r.cctvname ?? '이름없음',
-                  coordinate: { lat: parseFloat(r.coordy), lng: parseFloat(r.coordx) },
-                  streamUrl: r.cctvurl ?? '',
-                  source: 'ITS' as const,
-                  roadName: r.roadsectionid,
-                }));
-              setCctvNodes(nodes);
-              setCctvSource('its');
-            })
-            .catch(() => setCctvSource('mock'));
+            .then(parseAndSet)
+            .catch(applyStaticFallback);
         } else {
-          setCctvSource('mock');
+          applyStaticFallback();
         }
       });
 
