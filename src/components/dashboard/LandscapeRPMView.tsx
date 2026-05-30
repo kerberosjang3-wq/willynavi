@@ -1,5 +1,16 @@
 'use client';
+import { useEffect, useState } from 'react';
 import { useVirtualRPM, RPM_REDLINE, RPM_MAX } from '@/hooks/useVirtualRPM';
+
+function useIsNight(): boolean {
+  const check = () => { const h = new Date().getHours(); return h < 6 || h >= 20; };
+  const [isNight, setIsNight] = useState(check);
+  useEffect(() => {
+    const t = setInterval(() => setIsNight(check()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  return isNight;
+}
 import { SpeedCamera } from '@/hooks/useSpeedCamera';
 import { TrafficLevel } from '@/hooks/useTrafficInfo';
 import { SpeedCameraWidget } from './SpeedCameraWidget';
@@ -132,10 +143,12 @@ function SchoolZoneCard({ distM }: { distM: number | null }) {
 
 export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, trafficSpeedKmh, schoolZoneM }: Props) {
   const { rpm, isShifting, hasSpeed } = useVirtualRPM(speedKmh);
+  const isNight = useIsNight();
 
-  const speedDisplay = speedKmh !== null ? Math.round(speedKmh) : '--';
-  const rpmRatio     = rpm / RPM_MAX;
-  const zoneColor    = rpmZoneColor(rpm);
+  const speedDisplay  = speedKmh !== null ? Math.round(speedKmh) : '--';
+  const rpmRatio      = rpm / RPM_MAX;
+  const zoneColor     = rpmZoneColor(rpm);
+  const speedColor    = !hasSpeed ? '#252836' : isNight ? '#00E676' : '#FFD600';
 
   return (
     <div
@@ -166,8 +179,7 @@ export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, t
       {/* ── LEFT: 3개 정보 카드 ── */}
       <div
         style={{
-          flex: '0 0 auto',
-          width: 'clamp(90px, 20vw, 150px)',
+          flex: '1 1 0',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
@@ -210,9 +222,9 @@ export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, t
             style={{
               fontSize: 'clamp(3.8rem, 13vw, 8rem)',
               lineHeight: 1,
-              color: hasSpeed ? '#FFD600' : '#252836',
+              color: speedColor,
               letterSpacing: '-0.03em',
-              textShadow: isShifting ? '0 0 60px rgba(255,214,0,0.45)' : 'none',
+              textShadow: isShifting ? `0 0 60px ${speedColor}70` : 'none',
               transition: 'color 0.4s, text-shadow 0.08s',
             }}
           >
