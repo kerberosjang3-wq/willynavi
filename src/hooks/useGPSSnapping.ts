@@ -28,17 +28,25 @@ export function useGPSSnapping(
   const { nodes, config, useMock = false } = options;
   const [state, setState] = useState<SnappingState>(EMPTY_STATE);
   const serviceRef = useRef<SnappingService | null>(null);
+  const positionRef = useRef<GPSPosition | null>(null); // 최신 위치 보관
 
-  // 서비스 초기화 — config 변경 시에만 재생성
+  // 서비스 초기화
   useEffect(() => {
     serviceRef.current = new SnappingService(config);
   }, [config]);
 
-  // 노드 교체 — 노드 목록이 바뀔 때만 loadNodes 호출
+  // 노드 교체 → 현재 위치로 즉시 재계산
+  // 정지 상태에서 노드가 뒤늦게 도착해도 목록이 표시되도록 함
   useEffect(() => {
     if (!serviceRef.current) return;
     const sourceNodes = useMock ? ALL_MOCK_NODES : (nodes ?? []);
     serviceRef.current.loadNodes(sourceNodes);
+
+    // 이미 위치가 있으면 즉시 파이프라인 재실행
+    const pos = positionRef.current;
+    if (pos && pos.accuracy <= 100) {
+      setState(serviceRef.current.process(pos));
+    }
   }, [nodes, useMock]);
 
   // GPS 위치 변경 시 파이프라인 실행
@@ -47,10 +55,10 @@ export function useGPSSnapping(
       setState(EMPTY_STATE);
       return;
     }
+    positionRef.current = position;
     if (position.accuracy > 100) return;
 
-    const result = serviceRef.current.process(position);
-    setState(result);
+    setState(serviceRef.current.process(position));
   }, [position]);
 
   return state;

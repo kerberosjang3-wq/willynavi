@@ -1,16 +1,33 @@
 'use client';
 import { CCTVNode } from '@/types';
-import clsx from 'clsx';
 
 interface CCTVListProps {
   cctvs: CCTVNode[];
   selectedId: string | null;
-  recommendedId: string | null;   // 스내핑이 추천한 CCTV
+  recommendedId: string | null;
   onSelect: (cctv: CCTVNode) => void;
+  isWatching?: boolean;
 }
 
-export function CCTVList({ cctvs, selectedId, recommendedId, onSelect }: CCTVListProps) {
-  if (cctvs.length === 0) return null;
+export function CCTVList({ cctvs, selectedId, recommendedId, onSelect, isWatching }: CCTVListProps) {
+  if (cctvs.length === 0) {
+    return (
+      <div className="cyber-panel px-3 py-2.5 flex items-center gap-2">
+        <span
+          className={isWatching ? 'dot-pulse' : ''}
+          style={{
+            display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+            background: isWatching ? '#00ff88' : 'var(--cyber-border)',
+            boxShadow: isWatching ? '0 0 6px #00ff88' : 'none',
+            flexShrink: 0,
+          }}
+        />
+        <span className="font-vfd text-xs" style={{ color: 'var(--cyber-border)', letterSpacing: '0.08em' }}>
+          {isWatching ? 'CCTV 탐색 중...' : 'GPS 신호 대기 중'}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div
