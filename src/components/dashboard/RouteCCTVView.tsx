@@ -127,6 +127,7 @@ export function RouteCCTVView() {
   const [cctvs,       setCctvs]       = useState<RouteCCTV[]>([]);
   const [selected,    setSelected]    = useState<RouteCCTV | null>(null);
   const [summary,     setSummary]     = useState<RouteSummary | null>(null);
+  const [usedOption,  setUsedOption]  = useState<TMapRouteOption | null>(null);
 
   const canSearch = !!startPt && !!endPt;
 
@@ -146,6 +147,7 @@ export function RouteCCTVView() {
       if (polyline.length < 2) throw new Error('경로를 찾을 수 없습니다');
 
       setSummary(routeSummary);
+      setUsedOption(routeOption);
       const results = filterCCTVsAlongRoute(SEOUL_STATIC_CCTVS, polyline, 300);
       setCctvs(results);
       setSelected(results[0] ?? null);
@@ -212,26 +214,33 @@ export function RouteCCTVView() {
         {/* 경로 요약 (소요시간 · 거리 · 통행료) */}
         {summary && (
           <div
-            className="flex items-center justify-between rounded-lg px-3 py-2.5"
+            className="flex flex-col rounded-lg px-3 py-2.5 gap-1.5"
             style={{ background: 'rgba(255,157,0,0.08)', border: '1px solid rgba(255,157,0,0.3)' }}
           >
-            <div className="flex flex-col items-center flex-1">
-              <span className="font-vfd" style={{ fontSize: '0.45rem', color: 'var(--cyber-cyan-dim)', letterSpacing: '0.1em' }}>소요시간</span>
-              <span className="font-display font-black" style={{ fontSize: '1.3rem', color: 'var(--cyber-amber)', textShadow: '0 0 10px #ff9d00', lineHeight: 1.1 }}>
-                {formatTime(summary.totalTimeSec)}
+            {usedOption !== null && (
+              <span className="font-vfd text-center" style={{ fontSize: '0.45rem', color: 'var(--cyber-amber)', letterSpacing: '0.1em' }}>
+                {ROUTE_OPTIONS.find(o => o.value === usedOption)?.label ?? ''} 기준
               </span>
-            </div>
-            <div style={{ width: 1, height: 32, background: 'rgba(255,157,0,0.25)' }} />
-            <div className="flex flex-col items-center flex-1">
-              <span className="font-vfd" style={{ fontSize: '0.45rem', color: 'var(--cyber-cyan-dim)', letterSpacing: '0.1em' }}>거리</span>
-              <span className="font-vfd text-xs" style={{ color: 'var(--cyber-cyan)' }}>{formatDist(summary.totalDistanceM)}</span>
-            </div>
-            <div style={{ width: 1, height: 32, background: 'rgba(255,157,0,0.25)' }} />
-            <div className="flex flex-col items-center flex-1">
-              <span className="font-vfd" style={{ fontSize: '0.45rem', color: 'var(--cyber-cyan-dim)', letterSpacing: '0.1em' }}>통행료</span>
-              <span className="font-vfd text-xs" style={{ color: summary.totalFare > 0 ? '#ff9d00' : 'var(--cyber-cyan-dim)' }}>
-                {summary.totalFare > 0 ? `${summary.totalFare.toLocaleString()}원` : '없음'}
-              </span>
+            )}
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col items-center flex-1">
+                <span className="font-vfd" style={{ fontSize: '0.45rem', color: 'var(--cyber-cyan-dim)', letterSpacing: '0.1em' }}>소요시간</span>
+                <span className="font-display font-black" style={{ fontSize: '1.3rem', color: 'var(--cyber-amber)', textShadow: '0 0 10px #ff9d00', lineHeight: 1.1 }}>
+                  {formatTime(summary.totalTimeSec)}
+                </span>
+              </div>
+              <div style={{ width: 1, height: 32, background: 'rgba(255,157,0,0.25)' }} />
+              <div className="flex flex-col items-center flex-1">
+                <span className="font-vfd" style={{ fontSize: '0.45rem', color: 'var(--cyber-cyan-dim)', letterSpacing: '0.1em' }}>거리</span>
+                <span className="font-vfd text-xs" style={{ color: 'var(--cyber-cyan)' }}>{formatDist(summary.totalDistanceM)}</span>
+              </div>
+              <div style={{ width: 1, height: 32, background: 'rgba(255,157,0,0.25)' }} />
+              <div className="flex flex-col items-center flex-1">
+                <span className="font-vfd" style={{ fontSize: '0.45rem', color: 'var(--cyber-cyan-dim)', letterSpacing: '0.1em' }}>통행료</span>
+                <span className="font-vfd text-xs" style={{ color: summary.totalFare > 0 ? '#ff9d00' : 'var(--cyber-cyan-dim)' }}>
+                  {summary.totalFare > 0 ? `${summary.totalFare.toLocaleString()}원` : '없음'}
+                </span>
+              </div>
             </div>
           </div>
         )}

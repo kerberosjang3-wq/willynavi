@@ -96,17 +96,19 @@ export async function getTMapRoute(
   const polyline: [number, number][] = [];
   let summary: RouteSummary = { totalDistanceM: 0, totalTimeSec: 0, totalFare: 0 };
 
+  let summaryFound = false;
   for (const f of d?.features ?? []) {
     if (f.geometry?.type === 'LineString') {
       polyline.push(...(f.geometry.coordinates as [number, number][]));
     }
-    // 첫 번째 Point feature의 properties에 요약 정보가 있음
-    if (f.geometry?.type === 'Point' && f.properties?.totalDistance) {
+    // SP(출발지) Point의 properties에만 전체 경로 요약이 있으므로 첫 번째만 사용
+    if (!summaryFound && f.geometry?.type === 'Point' && f.properties?.totalDistance) {
       summary = {
         totalDistanceM: Number(f.properties.totalDistance),
         totalTimeSec:   Number(f.properties.totalTime),
         totalFare:      Number(f.properties.totalFare ?? 0),
       };
+      summaryFound = true;
     }
   }
 
