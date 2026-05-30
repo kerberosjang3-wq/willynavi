@@ -1,5 +1,5 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useNearbyNodes, type ApiSource } from '@/hooks/useNearbyNodes';
 import { useGPSSnapping } from '@/hooks/useGPSSnapping';
@@ -7,11 +7,24 @@ import { useCITSSignal } from '@/hooks/useCITSSignal';
 import { VFDDisplay } from '@/components/dashboard/VFDDisplay';
 import { SignalIndicator } from '@/components/dashboard/SignalIndicator';
 import { CCTVPanel } from '@/components/dashboard/CCTVPanel';
+import { CCTVList } from '@/components/dashboard/CCTVList';
+import { CCTVNode } from '@/types';
 
 export default function DashboardPage() {
   const { position, error: gpsError, isWatching } = useGeolocation();
   const { nodes: nearbyNodes, cctvSource, signalSource } = useNearbyNodes(position);
   const snapping = useGPSSnapping(position, { nodes: nearbyNodes, useMock: false });
+
+  // 사용자가 선택한 CCTV (null이면 스내핑 추천 CCTV 자동 사용)
+  const [userSelectedCCTV, setUserSelectedCCTV] = useState<CCTVNode | null>(null);
+
+  // 스내핑 추천 CCTV가 바뀌면 사용자 선택 초기화
+  const recommendedCCTV = snapping.activeCCTVs[0] ?? null;
+  useEffect(() => {
+    setUserSelectedCCTV(null);
+  }, [recommendedCCTV?.id]);
+
+  const displayedCCTV = userSelectedCCTV ?? recommendedCCTV;
   const { signal, isSafetyWarning, displayText } = useCITSSignal(
     snapping.activeSignal?.intersectionId ?? null,
     snapping.isInTriggerZone,
@@ -95,8 +108,16 @@ export default function DashboardPage() {
         />
       </div>
 
+      {/* ── 주변 CCTV 선택 목록 ───────────────────────────────────────── */}
+      <CCTVList
+        cctvs={snapping.nearbyCCTVList}
+        selectedId={displayedCCTV?.id ?? null}
+        recommendedId={recommendedCCTV?.id ?? null}
+        onSelect={(cctv) => setUserSelectedCCTV(cctv)}
+      />
+
       {/* ── CCTV 스트리밍 패널 ─────────────────────────────────────────── */}
-      <CCTVPanel cctv={snapping.activeCCTVs[0] ?? null} />
+      <CCTVPanel cctv={displayedCCTV} />
     </main>
   );
 }

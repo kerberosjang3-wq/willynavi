@@ -72,6 +72,7 @@ export class SnappingService {
 
     return {
       activeCCTVs: activeCCTV ? [activeCCTV] : cctvDirectional.slice(0, 2),
+      nearbyCCTVList: cctvSpatial,  // 방향 필터 전 전체 목록 (거리순)
       activeSignal,
       currentRoadName,
       nextIntersectionName,

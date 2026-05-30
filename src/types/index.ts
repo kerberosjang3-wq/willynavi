@@ -52,12 +52,13 @@ export type TrafficNode = CCTVNode | SignalNode;
 // ─── 스내핑 파이프라인 결과 ────────────────────────────────────────────────────
 export interface SnappingState {
   activeCCTVs: CCTVNode[];
+  nearbyCCTVList: CCTVNode[];  // 반경 내 전체 CCTV 목록 (거리순)
   activeSignal: SignalNode | null;
   currentRoadName: string;
   nextIntersectionName: string;
-  isInTriggerZone: boolean;   // 교차로 트리거 존 진입 여부
+  isInTriggerZone: boolean;
   nearbyNodesCount: number;
-  nearbyCCTVCount: number;   // 반경 내 CCTV 수
+  nearbyCCTVCount: number;
 }
 
 // ─── 필터 설정 ─────────────────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ import { ALL_MOCK_NODES } from '@/data/mockNodes';
 
 const EMPTY_STATE: SnappingState = {
   activeCCTVs: [],
+  nearbyCCTVList: [],
   activeSignal: null,
   currentRoadName: '---',
   nextIntersectionName: '---',
