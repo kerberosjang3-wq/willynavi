@@ -37,6 +37,23 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ response: { data: filtered.map(toRawCITS) } });
   }
 
+  // ── 0. Cloudflare Worker 프록시 (한국 ICN 엣지, 우선 시도) ────────────────
+  const cfWorkerUrl = process.env.CF_WORKER_URL;
+  if (cfWorkerUrl && intersectionId) {
+    try {
+      const res = await fetch(
+        `${cfWorkerUrl}/signal?id=${encodeURIComponent(intersectionId)}`,
+        { cache: 'no-store', signal: AbortSignal.timeout(6000) },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data && !data.error) return NextResponse.json(data);
+      }
+    } catch (e) {
+      console.error('[SIGNAL] CF Worker 실패:', (e as Error).message);
+    }
+  }
+
   // ── 1. 국가 ITS 실시간 신호 API 시도 ────────────────────────────────────────
   const itsKey = process.env.ITS_API_KEY;
   if (itsKey) {

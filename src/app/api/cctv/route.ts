@@ -34,7 +34,31 @@ export async function GET(req: NextRequest) {
   const maxLng = parseFloat(searchParams.get('maxX') ?? searchParams.get('maxLng') ?? '180');
 
   if (!useMock) {
-    // ── 1. 국가 ITS CCTV API ─────────────────────────────────────────────────
+    // ── 0. Cloudflare Worker 프록시 (한국 ICN 엣지, 우선 시도) ────────────────
+    const cfWorkerUrl = process.env.CF_WORKER_URL;
+    if (cfWorkerUrl) {
+      try {
+        const params = new URLSearchParams({
+          minX: String(minLng), maxX: String(maxLng),
+          minY: String(minLat), maxY: String(maxLat),
+        });
+        const res = await fetch(`${cfWorkerUrl}/cctv?${params}`, {
+          cache: 'no-store',
+          signal: AbortSignal.timeout(8000),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const rows = data?.response?.data ?? [];
+          if (rows.length > 0) {
+            return NextResponse.json({ response: { data: rows }, source: 'its' });
+          }
+        }
+      } catch (e) {
+        console.error('[CCTV] CF Worker 실패:', (e as Error).message);
+      }
+    }
+
+    // ── 1. 국가 ITS CCTV API (Vercel IP로 직접 시도, 국내 배포 시 동작) ────────
     const itsKey = process.env.ITS_API_KEY;
     if (itsKey) {
       const params = new URLSearchParams({
