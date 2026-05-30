@@ -93,6 +93,9 @@ export async function getTMapRoute(
   if (!r.ok) throw new Error(`경로 계산 실패: ${r.status}`);
   const d = await r.json();
 
+  console.log('[TMAP] optionValue sent:', options.optionValue ?? '0');
+  console.log('[TMAP] raw features count:', d?.features?.length);
+
   const polyline: [number, number][] = [];
   let summary: RouteSummary = { totalDistanceM: 0, totalTimeSec: 0, totalFare: 0 };
 
@@ -101,7 +104,6 @@ export async function getTMapRoute(
     if (f.geometry?.type === 'LineString') {
       polyline.push(...(f.geometry.coordinates as [number, number][]));
     }
-    // SP(출발지) Point의 properties에만 전체 경로 요약이 있으므로 첫 번째만 사용
     if (!summaryFound && f.geometry?.type === 'Point' && f.properties?.totalDistance) {
       summary = {
         totalDistanceM: Number(f.properties.totalDistance),
@@ -109,6 +111,7 @@ export async function getTMapRoute(
         totalFare:      Number(f.properties.totalFare ?? 0),
       };
       summaryFound = true;
+      console.log('[TMAP] summary found:', summary);
     }
   }
 
