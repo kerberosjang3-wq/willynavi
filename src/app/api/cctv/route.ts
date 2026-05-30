@@ -16,6 +16,14 @@ const SEOUL_SERVICE_NAMES = [
   'SeoulRtd',
 ];
 
+// 경기도 교통정보센터(GITS) CCTV API 후보
+const GG_CCTV_URLS = [
+  'https://openapigits.gg.go.kr/api/json/getCctvInfo',
+  'https://openapigits.gg.go.kr/api/json/getRoadCctvInfo',
+  'https://openapigits.gg.go.kr/api/json/getCCTVInfoList',
+  'https://openapigits.gg.go.kr/api/json/getCCTV',
+];
+
 export async function GET(req: NextRequest) {
   const useMock = process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
   const { searchParams } = req.nextUrl;
@@ -39,7 +47,6 @@ export async function GET(req: NextRequest) {
         maxY:     String(maxLat),
         getType:  'xml',
       });
-
       for (const baseUrl of ITS_CCTV_URLS) {
         try {
           const res = await fetch(`${baseUrl}?${params}`, {
@@ -48,8 +55,7 @@ export async function GET(req: NextRequest) {
             headers: { 'Content-Type': 'text/xml;charset=UTF-8' },
           });
           if (!res.ok) continue;
-          const text = await res.text();
-          const rows = parseITSXML(text);
+          const rows = parseITSXML(await res.text());
           if (rows.length > 0) {
             return NextResponse.json({ response: { data: rows }, source: 'its' });
           }
@@ -62,24 +68,13 @@ export async function GET(req: NextRequest) {
     if (seoulKey) {
       for (const svcName of SEOUL_SERVICE_NAMES) {
         try {
-          // 서울 OpenAPI 표준 URL: /{KEY}/json/{SERVICE}/{START}/{END}/
           const url = `http://openapi.seoul.go.kr:8088/${seoulKey}/json/${svcName}/1/100/`;
-          const res = await fetch(url, {
-            signal: AbortSignal.timeout(5000),
-          });
+          const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
           if (!res.ok) continue;
           const json = await res.json();
-
-          // 서울 API 응답 구조 정규화
           const rows: Record<string, string>[] =
-            json?.[svcName]?.row ??
-            json?.SeoulRtd?.row ??
-            json?.row ??
-            [];
-
+            json?.[svcName]?.row ?? json?.SeoulRtd?.row ?? json?.row ?? [];
           if (rows.length === 0) continue;
-
-          // bbox 필터 + 정규화
           const normalized = rows
             .filter((r) => {
               const lat = parseFloat(r.LATITUDE ?? r.coordy ?? '0');
@@ -87,24 +82,63 @@ export async function GET(req: NextRequest) {
               return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
             })
             .map((r) => ({
-              cctvid:       r.CCTV_ID ?? `seoul-${r.LATITUDE}_${r.LONGITUDE}`,
-              cctvname:     r.CCTV_NAME ?? r.cctvname ?? '서울 CCTV',
-              coordy:       r.LATITUDE ?? r.coordy ?? '0',
-              coordx:       r.LONGITUDE ?? r.coordx ?? '0',
-              cctvurl:      (r.CCTV_URL ?? r.cctvurl ?? '').replace(/^http:\/\//i, 'https://'),
-              cctvformat:   'HLS',
+              cctvid:        r.CCTV_ID ?? `seoul-${r.LATITUDE}_${r.LONGITUDE}`,
+              cctvname:      r.CCTV_NAME ?? r.cctvname ?? '서울 CCTV',
+              coordy:        r.LATITUDE ?? r.coordy ?? '0',
+              coordx:        r.LONGITUDE ?? r.coordx ?? '0',
+              cctvurl:       (r.CCTV_URL ?? r.cctvurl ?? '').replace(/^http:\/\//i, 'https://'),
+              cctvformat:    'HLS',
               roadsectionid: r.ROAD_NM ?? r.roadsectionid ?? '',
             }));
-
           if (normalized.length > 0) {
             return NextResponse.json({ response: { data: normalized }, source: 'seoul' });
           }
-        } catch { /* 다음 서비스명 시도 */ }
+        } catch { /* 다음 서비스명 */ }
+      }
+    }
+
+    // ── 3. 경기도 GITS CCTV API ──────────────────────────────────────────────
+    const ggKey = process.env.GG_API_KEY;
+    if (ggKey) {
+      const ggParams = new URLSearchParams({
+        serviceKey: ggKey,
+        minLat:     String(minLat),
+        maxLat:     String(maxLat),
+        minLon:     String(minLng),
+        maxLon:     String(maxLng),
+        pageNo:     '1',
+        numOfRows:  '50',
+        type:       'json',
+      });
+      for (const url of GG_CCTV_URLS) {
+        try {
+          const res = await fetch(`${url}?${ggParams}`, { signal: AbortSignal.timeout(4000) });
+          if (!res.ok) continue;
+          const json = await res.json();
+          const rows: Record<string, string>[] =
+            json?.response?.body?.items?.item ?? json?.items?.item ?? json?.data ?? [];
+          const list = Array.isArray(rows) ? rows : rows ? [rows] : [];
+          const normalized = list
+            .filter((r) => r.cctvUrl || r.CCTV_URL || r.streamUrl)
+            .map((r) => ({
+              cctvid:        r.cctvId ?? r.CCTV_ID ?? `gg-${r.lat}_${r.lon}`,
+              cctvname:      r.cctvName ?? r.CCTV_NAME ?? '경기 CCTV',
+              coordy:        r.lat ?? r.latitude ?? r.coordY ?? '0',
+              coordx:        r.lon ?? r.longitude ?? r.coordX ?? '0',
+              cctvurl:       (r.cctvUrl ?? r.CCTV_URL ?? r.streamUrl ?? '')
+                               .replace(/^http:\/\//i, 'https://'),
+              cctvformat:    'HLS',
+              roadsectionid: r.roadNm ?? r.ROAD_NM ?? '',
+            }));
+          if (normalized.length > 0) {
+            return NextResponse.json({ response: { data: normalized }, source: 'gg' });
+          }
+        } catch { /* 다음 후보 */ }
       }
     }
   }
 
-  // ── 3. Mock 폴백 ──────────────────────────────────────────────────────────
+  // ── 4. Mock 폴백 ──────────────────────────────────────────────────────────
   const filtered = MOCK_CCTV_NODES.filter(
     (n) =>
       n.coordinate.lat >= minLat && n.coordinate.lat <= maxLat &&
