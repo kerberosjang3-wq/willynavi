@@ -64,9 +64,12 @@ export function LandscapeRPMView({ speedKmh, camera }: { speedKmh: number | null
           alignItems: 'center',
         }}
       >
-        <span className="font-display" style={{ fontSize: '0.6rem', color: '#5B9FFF', letterSpacing: '0.3em' }}>
-          WILLY<span style={{ color: '#FFD600', margin: '0 2px' }}>·</span>NAVI
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <img src="/icons/logo.png" alt="logo" style={{ height: '0.9rem', width: 'auto', opacity: 0.9 }} />
+          <span className="font-display" style={{ fontSize: '0.6rem', color: '#5B9FFF', letterSpacing: '0.3em' }}>
+            WILLY<span style={{ color: '#FFD600', margin: '0 2px' }}>·</span>NAVI
+          </span>
+        </div>
         <span
           className="font-vfd"
           style={{ fontSize: '0.5rem', color: hasSpeed ? '#1E4A2A' : '#4A3010', letterSpacing: '0.18em' }}
