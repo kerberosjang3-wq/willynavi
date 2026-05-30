@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useNearbyNodes, type ApiSource } from '@/hooks/useNearbyNodes';
 import { useGPSSnapping } from '@/hooks/useGPSSnapping';
@@ -9,6 +9,7 @@ import { SignalIndicator } from '@/components/dashboard/SignalIndicator';
 import { CCTVPanel } from '@/components/dashboard/CCTVPanel';
 import { CCTVList } from '@/components/dashboard/CCTVList';
 import { CCTVNode } from '@/types';
+import { haversineDistance } from '@/utils/geo.utils';
 
 export default function DashboardPage() {
   const { position, error: gpsError, isWatching } = useGeolocation();
@@ -25,6 +26,15 @@ export default function DashboardPage() {
   }, [recommendedCCTV?.id]);
 
   const displayedCCTV = userSelectedCCTV ?? recommendedCCTV;
+
+  // 스내핑 1.5km 필터와 무관하게 API가 가져온 모든 CCTV를 거리순 정렬
+  const allNearbyCCTVs = useMemo<CCTVNode[]>(() => {
+    const cctvs = nearbyNodes.filter((n): n is CCTVNode => n.type === 'CCTV');
+    if (!position) return cctvs;
+    return cctvs
+      .map((c) => ({ ...c, distance: Math.round(haversineDistance(position, c.coordinate)) }))
+      .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
+  }, [nearbyNodes, position]);
   const { signal, isSafetyWarning, displayText } = useCITSSignal(
     snapping.activeSignal?.intersectionId ?? null,
     snapping.isInTriggerZone,
@@ -57,7 +67,7 @@ export default function DashboardPage() {
         isWatching={isWatching}
         gpsError={gpsError}
         accuracy={position?.accuracy ?? null}
-        cctvCount={snapping.nearbyCCTVCount}
+        cctvCount={allNearbyCCTVs.length}
         cctvSource={cctvSource}
         signalSource={signalSource}
       />
@@ -110,7 +120,7 @@ export default function DashboardPage() {
 
       {/* ── 주변 CCTV 선택 목록 ───────────────────────────────────────── */}
       <CCTVList
-        cctvs={snapping.nearbyCCTVList}
+        cctvs={allNearbyCCTVs}
         selectedId={displayedCCTV?.id ?? null}
         recommendedId={recommendedCCTV?.id ?? null}
         onSelect={(cctv) => setUserSelectedCCTV(cctv)}
