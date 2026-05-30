@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CCTVNode } from '@/types';
 import { useHLSPlayer } from '@/hooks/useCCTV';
 
@@ -7,13 +7,27 @@ interface CCTVPanelProps {
   cctv: CCTVNode | null;
 }
 
-// ─── CCTV HLS 스트리밍 패널 ────────────────────────────────────────────────────
+function isMockUrl(url: string | undefined): boolean {
+  return !url || url.includes('example-its.go.kr') || url.trim() === '';
+}
+
 export function CCTVPanel({ cctv }: CCTVPanelProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isError, setIsError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  useHLSPlayer(videoRef, cctv?.streamUrl ?? null);
+  // CCTV가 바뀔 때마다 상태 초기화
+  useEffect(() => {
+    setIsError(false);
+    setIsLoading(true);
+  }, [cctv?.id]);
+
+  // Mock URL이면 HLS 로드 시도하지 않음
+  const streamUrl = cctv && !isMockUrl(cctv.streamUrl) ? cctv.streamUrl : null;
+  useHLSPlayer(videoRef, streamUrl);
+
+  const isMock = cctv ? isMockUrl(cctv.streamUrl) : false;
+  const sourceLabel = isMock ? 'MOCK' : (cctv?.source ?? '---');
 
   return (
     <div
@@ -38,8 +52,8 @@ export function CCTVPanel({ cctv }: CCTVPanelProps) {
         <span className="font-vfd text-xs truncate max-w-[55%]" style={{ color: 'var(--cyber-cyan)', textShadow: '0 0 6px #00d4ff44' }}>
           {cctv?.name ?? '---'}
         </span>
-        <span className="font-vfd text-xs" style={{ color: 'var(--cyber-amber)' }}>
-          {cctv?.source ?? '---'}
+        <span className="font-vfd text-xs" style={{ color: isMock ? 'var(--cyber-amber)' : 'var(--cyber-amber)' }}>
+          {sourceLabel}
         </span>
       </div>
 
@@ -47,7 +61,7 @@ export function CCTVPanel({ cctv }: CCTVPanelProps) {
       <div className="relative" style={{ aspectRatio: '16/9' }}>
         {!cctv ? (
           <NoCCTVOverlay />
-        ) : isMockUrl(cctv.streamUrl) ? (
+        ) : isMock ? (
           <MockOverlay name={cctv.name} />
         ) : (
           <>
@@ -81,10 +95,26 @@ export function CCTVPanel({ cctv }: CCTVPanelProps) {
   );
 }
 
+function MockOverlay({ name }: { name: string }) {
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 gap-2">
+      <span className="font-vfd text-xs" style={{ color: 'var(--cyber-amber)', letterSpacing: '0.1em' }}>
+        실 스트림 미연결
+      </span>
+      <span className="font-vfd text-xs text-center px-4" style={{ color: 'var(--cyber-cyan-dim)' }}>
+        {name}
+      </span>
+      <span className="font-vfd text-center px-4" style={{ color: 'var(--cyber-border)', fontSize: '0.5rem' }}>
+        ITS API 응답 대기 중
+      </span>
+    </div>
+  );
+}
+
 function LoadingOverlay() {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80">
-      <div className="font-vfd text-sm animate-pulse_glow" style={{ color: '#00ff88' }}>
+      <div className="font-vfd text-sm animate-pulse" style={{ color: '#00ff88' }}>
         스트림 연결 중...
       </div>
       <div className="mt-2 flex gap-1">
@@ -100,32 +130,11 @@ function LoadingOverlay() {
   );
 }
 
-// Mock URL 감지 — example-its.go.kr 또는 빈 URL
-function isMockUrl(url: string): boolean {
-  return !url || url.includes('example-its.go.kr') || url.trim() === '';
-}
-
-function MockOverlay({ name }: { name: string }) {
-  return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 gap-2">
-      <span className="font-vfd text-xs" style={{ color: 'var(--cyber-amber)', letterSpacing: '0.1em' }}>
-        실 스트림 미연결
-      </span>
-      <span className="font-vfd text-xs text-center px-4" style={{ color: 'var(--cyber-cyan-dim)' }}>
-        {name}
-      </span>
-      <span className="font-vfd text-xs text-center px-4" style={{ color: 'var(--cyber-border)', fontSize: '0.5rem' }}>
-        ITS API 연결 후 영상 표시
-      </span>
-    </div>
-  );
-}
-
 function ErrorOverlay({ name }: { name: string }) {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90">
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 gap-1">
       <span className="font-vfd text-xs" style={{ color: '#ff4400' }}>스트림 오류</span>
-      <span className="font-vfd text-xs mt-1 text-center px-4" style={{ color: '#004422' }}>
+      <span className="font-vfd text-xs text-center px-4" style={{ color: 'var(--cyber-cyan-dim)' }}>
         {name}
       </span>
     </div>
@@ -135,10 +144,10 @@ function ErrorOverlay({ name }: { name: string }) {
 function NoCCTVOverlay() {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/95">
-      <div className="font-vfd text-sm" style={{ color: '#004422', letterSpacing: '0.1em' }}>
+      <div className="font-vfd text-sm" style={{ color: 'var(--cyber-cyan-dim)', letterSpacing: '0.1em' }}>
         NO SIGNAL
       </div>
-      <div className="mt-1 font-vfd text-xs" style={{ color: '#021a0e' }}>
+      <div className="mt-1 font-vfd text-xs" style={{ color: 'var(--cyber-border)' }}>
         전방 CCTV 없음
       </div>
     </div>
