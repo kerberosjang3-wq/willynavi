@@ -1,52 +1,16 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { CCTVNode, CCTVSource } from '@/types';
+import { useState } from 'react';
+import { CCTVNode } from '@/types';
 import { CCTVPanel } from './CCTVPanel';
-
-const BBOX = { minLat: 37.49, maxLat: 37.57, minLng: 126.80, maxLng: 127.15 };
+import { OLYMPIC_BLVD_CCTVS } from '@/data/olympicBlvdCCTVs';
 
 function isMockCCTV(url: string) {
   return !url || url.includes('example-its.go.kr');
 }
 
-function rawToNode(r: Record<string, string>, source: CCTVSource, idx: number): CCTVNode {
-  return {
-    id:         r.cctvid || `olympic-${idx}`,
-    type:       'CCTV',
-    name:       r.cctvname || '올림픽대로 CCTV',
-    coordinate: { lat: parseFloat(r.coordy), lng: parseFloat(r.coordx) },
-    streamUrl:  r.cctvurl || '',
-    source,
-    roadName:   r.roadsectionid || '올림픽대로',
-  };
-}
-
 export function OlympicBlvdView() {
-  const [cctvs, setCctvs]     = useState<CCTVNode[]>([]);
-  const [selected, setSelected] = useState<CCTVNode | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
-
-  useEffect(() => {
-    const params = new URLSearchParams({
-      minY: String(BBOX.minLat),
-      maxY: String(BBOX.maxLat),
-      minX: String(BBOX.minLng),
-      maxX: String(BBOX.maxLng),
-    });
-    fetch(`/api/cctv?${params}`)
-      .then((r) => r.json())
-      .then((data) => {
-        const rows: Record<string, string>[] = data?.response?.data ?? [];
-        const src: CCTVSource =
-          data?.source === 'seoul' ? 'SEOUL' : 'ITS';
-        const nodes = rows.map((r, i) => rawToNode(r, src, i));
-        setCctvs(nodes);
-        setSelected(nodes[0] ?? null);
-      })
-      .catch(() => setError('CCTV 목록을 불러오지 못했습니다'))
-      .finally(() => setLoading(false));
-  }, []);
+  const cctvs = OLYMPIC_BLVD_CCTVS;
+  const [selected, setSelected] = useState<CCTVNode>(cctvs[0]);
 
   return (
     <div className="flex flex-col" style={{ gap: 10 }}>
@@ -68,37 +32,13 @@ export function OlympicBlvdView() {
             올림픽대로 전구간
           </span>
         </div>
-        {!loading && (
-          <span className="font-vfd" style={{ fontSize: '0.65rem', color: 'var(--cyber-amber)' }}>
-            {cctvs.length}개
-          </span>
-        )}
+        <span className="font-vfd" style={{ fontSize: '0.65rem', color: 'var(--cyber-amber)' }}>
+          {cctvs.length}개
+        </span>
       </div>
 
-      {/* ── 로딩 / 에러 ─────────────────────────────────────────────────── */}
-      {loading && (
-        <div className="cyber-panel flex items-center gap-2 px-4 py-3">
-          <span
-            className="dot-pulse"
-            style={{
-              display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
-              background: '#00ff88', boxShadow: '0 0 6px #00ff88', flexShrink: 0,
-            }}
-          />
-          <span className="font-vfd text-xs" style={{ color: 'var(--cyber-cyan-dim)', letterSpacing: '0.08em' }}>
-            CCTV 로딩 중...
-          </span>
-        </div>
-      )}
-
-      {!loading && error && (
-        <div className="cyber-panel px-4 py-3">
-          <span className="font-vfd text-xs" style={{ color: '#ff4444' }}>{error}</span>
-        </div>
-      )}
-
       {/* ── CCTV 선택 목록 (가로 스크롤) ────────────────────────────────── */}
-      {!loading && cctvs.length > 0 && (
+      {cctvs.length > 0 && (
         <div className="cyber-panel px-2 py-2" style={{ overflow: 'hidden' }}>
           <div
             className="flex gap-2 overflow-x-auto pb-1"
@@ -151,7 +91,7 @@ export function OlympicBlvdView() {
       )}
 
       {/* ── 선택된 CCTV 스트리밍 ─────────────────────────────────────────── */}
-      {!loading && <CCTVPanel cctv={selected} />}
+      <CCTVPanel cctv={selected} />
     </div>
   );
 }
