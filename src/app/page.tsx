@@ -148,7 +148,7 @@ export default function DashboardPage() {
 // ─── 탭 바 ──────────────────────────────────────────────────────────────────
 const TABS: { id: TabId; label: string }[] = [
   { id: 'nav',     label: 'NAV' },
-  { id: 'olympic', label: '올림픽대로' },
+  { id: 'olympic', label: '한강변 교통' },
 ];
 
 function TabBar({ activeTab, onTabChange }: { activeTab: TabId; onTabChange: (t: TabId) => void }) {

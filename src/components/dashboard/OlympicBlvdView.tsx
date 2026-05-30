@@ -23,13 +23,13 @@ export function OlympicBlvdView() {
             className="font-vfd"
             style={{ fontSize: '0.6rem', color: 'var(--cyber-cyan)', letterSpacing: '0.15em' }}
           >
-            ▶ OLYMPIC BLVD
+            ▶ HAN RIVER
           </span>
           <span
             className="font-vfd text-xs"
             style={{ color: 'var(--cyber-cyan-dim)' }}
           >
-            올림픽대로 전구간
+            한강변 교통 CCTV
           </span>
         </div>
         <span className="font-vfd" style={{ fontSize: '0.65rem', color: 'var(--cyber-amber)' }}>
