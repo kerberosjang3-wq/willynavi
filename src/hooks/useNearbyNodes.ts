@@ -75,6 +75,7 @@ export function useNearbyNodes(position: GPSPosition | null): NearbyNodesResult 
         setCctvNodes(staticNodes);
         setCctvSource('its');
       } else {
+        setCctvNodes([]);   // 이전 위치 데이터 확실히 제거
         setCctvSource('mock');
       }
     };

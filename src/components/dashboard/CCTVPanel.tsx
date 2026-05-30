@@ -161,12 +161,12 @@ function ErrorOverlay({ name, onRetry }: { name: string; onRetry: () => void }) 
 
 function NoCCTVOverlay() {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/95">
-      <div className="font-vfd text-sm" style={{ color: 'var(--cyber-cyan-dim)', letterSpacing: '0.1em' }}>
-        NO SIGNAL
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/95 gap-1">
+      <div className="font-vfd text-sm" style={{ color: '#ff6644', letterSpacing: '0.1em' }}>
+        CCTV 정보 없음
       </div>
-      <div className="mt-1 font-vfd text-xs" style={{ color: 'var(--cyber-border)' }}>
-        전방 CCTV 없음
+      <div className="font-vfd text-xs text-center px-6" style={{ color: 'var(--cyber-border)' }}>
+        현재 위치 주변 CCTV 미제공 구간
       </div>
     </div>
   );

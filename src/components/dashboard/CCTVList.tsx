@@ -11,23 +11,40 @@ interface CCTVListProps {
   recommendedId: string | null;
   onSelect: (cctv: CCTVNode) => void;
   isWatching?: boolean;
+  cctvSource?: string;
 }
 
-export function CCTVList({ cctvs, selectedId, recommendedId, onSelect, isWatching }: CCTVListProps) {
+export function CCTVList({ cctvs, selectedId, recommendedId, onSelect, isWatching, cctvSource }: CCTVListProps) {
   if (cctvs.length === 0) {
+    const isLoading = cctvSource === 'loading' || !isWatching;
+    const noData    = isWatching && cctvSource === 'mock';
+
     return (
       <div className="cyber-panel px-3 py-2.5 flex items-center gap-2">
-        <span
-          className={isWatching ? 'dot-pulse' : ''}
-          style={{
-            display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
-            background: isWatching ? '#00ff88' : 'var(--cyber-border)',
-            boxShadow: isWatching ? '0 0 6px #00ff88' : 'none',
-            flexShrink: 0,
-          }}
-        />
-        <span className="font-vfd text-xs" style={{ color: 'var(--cyber-cyan-dim)', letterSpacing: '0.08em' }}>
-          {isWatching ? 'CCTV 탐색 중...' : 'GPS 신호 대기 중'}
+        {!noData && (
+          <span
+            className={isWatching && !noData ? 'dot-pulse' : ''}
+            style={{
+              display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+              background: isWatching ? '#00ff88' : 'var(--cyber-border)',
+              boxShadow: isWatching ? '0 0 6px #00ff88' : 'none',
+              flexShrink: 0,
+            }}
+          />
+        )}
+        {noData && (
+          <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+            background: '#ff6644', flexShrink: 0 }} />
+        )}
+        <span className="font-vfd text-xs" style={{
+          color: noData ? '#ff6644' : 'var(--cyber-cyan-dim)',
+          letterSpacing: '0.08em',
+        }}>
+          {!isWatching
+            ? 'GPS 신호 대기 중'
+            : isLoading
+              ? 'CCTV 탐색 중...'
+              : 'CCTV 정보 없음'}
         </span>
       </div>
     );

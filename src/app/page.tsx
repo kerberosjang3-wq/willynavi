@@ -143,6 +143,7 @@ export default function DashboardPage() {
             recommendedId={recommendedCCTV?.id ?? null}
             onSelect={(cctv) => setUserSelectedCCTV(cctv)}
             isWatching={isWatching}
+            cctvSource={cctvSource}
           />
 
           {/* CCTV 스트리밍 패널 */}
