@@ -16,6 +16,7 @@ import { RouteCheckView } from '@/components/dashboard/RouteCheckView';
 import { LandscapeRPMView } from '@/components/dashboard/LandscapeRPMView';
 import { CCTVNode, SignalNode } from '@/types';
 import { haversineDistance } from '@/utils/geo.utils';
+import { useSpeedCameras, computeNearest } from '@/hooks/useSpeedCamera';
 
 type TabId = 'drive' | 'routecheck' | 'nav' | 'olympic' | 'signal' | 'route';
 
@@ -79,6 +80,12 @@ export default function DashboardPage() {
     position?.speed !== null && position?.speed !== undefined
       ? position.speed * 3.6
       : null;
+
+  const { cameras: rawCameras } = useSpeedCameras(position);
+  const nearestCamera = useMemo(
+    () => computeNearest(rawCameras, position),
+    [rawCameras, position],
+  );
 
   return (
     <main
@@ -190,6 +197,7 @@ export default function DashboardPage() {
           cycleSeconds={snapping.activeSignal?.cycleSeconds ?? 90}
           speedKmh={speedKmh}
           activeCCTVs={snapping.activeCCTVs}
+          camera={nearestCamera}
         />
       )}
 
@@ -197,7 +205,7 @@ export default function DashboardPage() {
       {activeTab === 'routecheck' && <RouteCheckView />}
 
       {/* ── 가로 모드: Virtual RPM 오버레이 ─────────────────────────────── */}
-      {isLandscape && <LandscapeRPMView speedKmh={speedKmh} />}
+      {isLandscape && <LandscapeRPMView speedKmh={speedKmh} camera={nearestCamera} />}
     </main>
   );
 }

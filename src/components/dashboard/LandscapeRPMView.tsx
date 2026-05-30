@@ -1,6 +1,8 @@
 'use client';
 import { useMemo } from 'react';
 import { useVirtualRPM, RPM_REDLINE, RPM_MAX } from '@/hooks/useVirtualRPM';
+import { SpeedCamera } from '@/hooks/useSpeedCamera';
+import { SpeedCameraWidget } from './SpeedCameraWidget';
 
 // 70 segments = 100 RPM each (0–7000 RPM)
 const SEG_COUNT   = 70;
@@ -14,7 +16,7 @@ function segColor(i: number): string {
   return '#5B9FFF';                        // 사이언존
 }
 
-export function LandscapeRPMView({ speedKmh }: { speedKmh: number | null }) {
+export function LandscapeRPMView({ speedKmh, camera }: { speedKmh: number | null; camera: SpeedCamera | null }) {
   const { rpm, gear, isShifting } = useVirtualRPM(speedKmh);
 
   const activeSeg    = Math.min(SEG_COUNT, Math.round((rpm / RPM_MAX) * SEG_COUNT));
@@ -182,6 +184,13 @@ export function LandscapeRPMView({ speedKmh }: { speedKmh: number | null }) {
           ))}
         </div>
       </div>
+
+      {/* 단속카메라 배지 */}
+      {camera && (
+        <div style={{ marginTop: 16, width: '100%', maxWidth: 720 }}>
+          <SpeedCameraWidget camera={camera} speedKmh={speedKmh} compact />
+        </div>
+      )}
     </div>
   );
 }
