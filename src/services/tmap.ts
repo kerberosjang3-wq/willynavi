@@ -85,7 +85,7 @@ export async function getTMapRoute(
       resCoordType: 'WGS84GEO',
       startName:    encodeURIComponent(start.name),
       endName:      encodeURIComponent(end.name),
-      optionValue:  options.optionValue ?? '0',
+      optionValue:  Number(options.optionValue ?? '0'),
       trafficInfo:  options.trafficInfo ?? 'Y',
     }),
   });
