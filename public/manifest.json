@@ -4,7 +4,7 @@
   "description": "실시간 GPS 스내핑 기반 CCTV·신호등 정보 대시보드",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#0f0f14",
   "theme_color": "#00ff88",
   "icons": [

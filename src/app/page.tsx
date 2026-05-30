@@ -13,6 +13,7 @@ import { SignalListView } from '@/components/dashboard/SignalListView';
 import { RouteCCTVView } from '@/components/dashboard/RouteCCTVView';
 import { DriveModeView } from '@/components/dashboard/DriveModeView';
 import { RouteCheckView } from '@/components/dashboard/RouteCheckView';
+import { LandscapeRPMView } from '@/components/dashboard/LandscapeRPMView';
 import { CCTVNode, SignalNode } from '@/types';
 import { haversineDistance } from '@/utils/geo.utils';
 
@@ -20,6 +21,15 @@ type TabId = 'drive' | 'routecheck' | 'nav' | 'olympic' | 'signal' | 'route';
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<TabId>('drive');
+  const [isLandscape, setIsLandscape] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(orientation: landscape)');
+    setIsLandscape(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsLandscape(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   const { position, error: gpsError, isWatching } = useGeolocation();
   const { nodes: nearbyNodes, cctvSource, signalSource } = useNearbyNodes(position);
@@ -185,6 +195,9 @@ export default function DashboardPage() {
 
       {/* ── 경로 체크 탭 ────────────────────────────────────────────────── */}
       {activeTab === 'routecheck' && <RouteCheckView />}
+
+      {/* ── 가로 모드: Virtual RPM 오버레이 ─────────────────────────────── */}
+      {isLandscape && <LandscapeRPMView speedKmh={speedKmh} />}
     </main>
   );
 }
