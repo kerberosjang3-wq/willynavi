@@ -191,7 +191,7 @@ export function RouteCCTVView() {
               return (
                 <button
                   key={opt.value}
-                  onClick={() => setRouteOption(opt.value)}
+                  onClick={() => { setRouteOption(opt.value); setSummary(null); setCctvs([]); setSelected(null); setStatus('idle'); }}
                   className="font-vfd rounded px-2 py-1"
                   style={{
                     fontSize: '0.5rem',
