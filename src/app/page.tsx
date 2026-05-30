@@ -9,10 +9,11 @@ import { SignalIndicator } from '@/components/dashboard/SignalIndicator';
 import { CCTVPanel } from '@/components/dashboard/CCTVPanel';
 import { CCTVList } from '@/components/dashboard/CCTVList';
 import { OlympicBlvdView } from '@/components/dashboard/OlympicBlvdView';
-import { CCTVNode } from '@/types';
+import { SignalListView } from '@/components/dashboard/SignalListView';
+import { CCTVNode, SignalNode } from '@/types';
 import { haversineDistance } from '@/utils/geo.utils';
 
-type TabId = 'nav' | 'olympic';
+type TabId = 'nav' | 'olympic' | 'signal';
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<TabId>('nav');
@@ -33,6 +34,14 @@ export default function DashboardPage() {
   const displayedCCTV = userSelectedCCTV ?? recommendedCCTV;
 
   // 스내핑 1.5km 필터와 무관하게 API가 가져온 모든 CCTV를 거리순 정렬
+  const allNearbySignals = useMemo<SignalNode[]>(() => {
+    const sigs = nearbyNodes.filter((n): n is SignalNode => n.type === 'SIGNAL');
+    if (!position) return sigs;
+    return sigs
+      .map((s) => ({ ...s, distance: Math.round(haversineDistance(position, s.coordinate)) }))
+      .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
+  }, [nearbyNodes, position]);
+
   const allNearbyCCTVs = useMemo<CCTVNode[]>(() => {
     const cctvs = nearbyNodes.filter((n): n is CCTVNode => n.type === 'CCTV');
     if (!position) return cctvs;
@@ -139,8 +148,17 @@ export default function DashboardPage() {
         </>
       )}
 
-      {/* ── 올림픽대로 탭 콘텐츠 ───────────────────────────────────────── */}
+      {/* ── 한강변 교통 탭 콘텐츠 ──────────────────────────────────────── */}
       {activeTab === 'olympic' && <OlympicBlvdView />}
+
+      {/* ── 신호등 탭 콘텐츠 ────────────────────────────────────────────── */}
+      {activeTab === 'signal' && (
+        <SignalListView
+          signals={allNearbySignals}
+          position={position}
+          isWatching={isWatching}
+        />
+      )}
     </main>
   );
 }
@@ -148,7 +166,8 @@ export default function DashboardPage() {
 // ─── 탭 바 ──────────────────────────────────────────────────────────────────
 const TABS: { id: TabId; label: string }[] = [
   { id: 'nav',     label: 'NAV' },
-  { id: 'olympic', label: '한강변 교통' },
+  { id: 'olympic', label: '한강변' },
+  { id: 'signal',  label: '신호등' },
 ];
 
 function TabBar({ activeTab, onTabChange }: { activeTab: TabId; onTabChange: (t: TabId) => void }) {
