@@ -103,7 +103,7 @@ export function useNearbyNodes(position: GPSPosition | null): NearbyNodesResult 
       }
     };
 
-    fetch(cctvEndpoint)
+    fetch(cctvEndpoint, { signal: AbortSignal.timeout(6000) })
       .then((r) => r.json())
       .then(parseAndSet)
       .catch(() => {

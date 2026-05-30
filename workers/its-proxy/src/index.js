@@ -53,9 +53,10 @@ async function handleCCTV(url, env) {
     getType:  'xml',
   });
 
+  // ITS API가 Cloudflare IP도 차단(522) → 3초에 빠르게 실패
   const res = await fetch(
     `https://openapi.its.go.kr:9443/cctvInfo?${params}`,
-    { signal: AbortSignal.timeout(25000) },
+    { signal: AbortSignal.timeout(3000) },
   );
 
   if (!res.ok) return json({ error: `ITS HTTP ${res.status}` }, 502);
