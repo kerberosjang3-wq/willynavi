@@ -24,30 +24,49 @@ export async function GET(req: NextRequest) {
   }
 
   const apiKey = process.env.ITS_API_KEY;
-  if (!apiKey) return NextResponse.json({ error: 'ITS_API_KEY not set' }, { status: 500 });
+  const minLat = parseFloat(searchParams.get('minY') ?? searchParams.get('minLat') ?? '0');
+  const maxLat = parseFloat(searchParams.get('maxY') ?? searchParams.get('maxLat') ?? '90');
+  const minLng = parseFloat(searchParams.get('minX') ?? searchParams.get('minLng') ?? '0');
+  const maxLng = parseFloat(searchParams.get('maxX') ?? searchParams.get('maxLng') ?? '180');
 
-  try {
+  if (apiKey) {
+    const CCTV_URLS = [
+      'http://openapi.its.go.kr/api/NCCTVInfo',
+      'https://openapi.its.go.kr/api/NCCTVInfo',
+    ];
     const params = new URLSearchParams({
       key: apiKey,
       ReqType: '2',
-      MinX: searchParams.get('minX') ?? '126',
-      MaxX: searchParams.get('maxX') ?? '128',
-      MinY: searchParams.get('minY') ?? '37',
-      MaxY: searchParams.get('maxY') ?? '38',
+      MinX: searchParams.get('minX') ?? String(minLng),
+      MaxX: searchParams.get('maxX') ?? String(maxLng),
+      MinY: searchParams.get('minY') ?? String(minLat),
+      MaxY: searchParams.get('maxY') ?? String(maxLat),
       type: 'ex',
     });
 
-    const upstream = await fetch(
-      `http://openapi.its.go.kr/api/NCCTVInfo?${params}`,
-      { next: { revalidate: 60 } },
-    );
-    const data = await upstream.json();
-    // 신규 API 응답 구조 정규화
-    const rows = data?.response?.data ?? data?.Data ?? data?.data ?? [];
-    return NextResponse.json({ response: { data: rows } });
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 502 });
+    for (const baseUrl of CCTV_URLS) {
+      try {
+        const upstream = await fetch(`${baseUrl}?${params}`, {
+          next: { revalidate: 60 },
+          signal: AbortSignal.timeout(5000),
+        });
+        if (!upstream.ok) continue;
+        const data = await upstream.json();
+        const rows = data?.response?.data ?? data?.Data ?? data?.data ?? [];
+        if (rows.length > 0) {
+          return NextResponse.json({ response: { data: rows } });
+        }
+      } catch { /* 다음 후보 또는 Mock 폴백 */ }
+    }
   }
+
+  // 실API 실패 → bbox 내 Mock CCTV 반환
+  const filtered = MOCK_CCTV_NODES.filter(
+    (n) =>
+      n.coordinate.lat >= minLat && n.coordinate.lat <= maxLat &&
+      n.coordinate.lng >= minLng && n.coordinate.lng <= maxLng,
+  );
+  return NextResponse.json({ response: { data: filtered.map(toRawITS) } });
 }
 
 function toRawITS(node: (typeof MOCK_CCTV_NODES)[0]) {
