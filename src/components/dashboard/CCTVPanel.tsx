@@ -45,7 +45,11 @@ export function CCTVPanel({ cctv }: CCTVPanelProps) {
 
       {/* 비디오 영역 */}
       <div className="relative" style={{ aspectRatio: '16/9' }}>
-        {cctv ? (
+        {!cctv ? (
+          <NoCCTVOverlay />
+        ) : isMockUrl(cctv.streamUrl) ? (
+          <MockOverlay name={cctv.name} />
+        ) : (
           <>
             <video
               ref={videoRef}
@@ -59,8 +63,6 @@ export function CCTVPanel({ cctv }: CCTVPanelProps) {
             {isLoading && !isError && <LoadingOverlay />}
             {isError && <ErrorOverlay name={cctv.name} />}
           </>
-        ) : (
-          <NoCCTVOverlay />
         )}
       </div>
 
@@ -94,6 +96,27 @@ function LoadingOverlay() {
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+// Mock URL 감지 — example-its.go.kr 또는 빈 URL
+function isMockUrl(url: string): boolean {
+  return !url || url.includes('example-its.go.kr') || url.trim() === '';
+}
+
+function MockOverlay({ name }: { name: string }) {
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 gap-2">
+      <span className="font-vfd text-xs" style={{ color: 'var(--cyber-amber)', letterSpacing: '0.1em' }}>
+        실 스트림 미연결
+      </span>
+      <span className="font-vfd text-xs text-center px-4" style={{ color: 'var(--cyber-cyan-dim)' }}>
+        {name}
+      </span>
+      <span className="font-vfd text-xs text-center px-4" style={{ color: 'var(--cyber-border)', fontSize: '0.5rem' }}>
+        ITS API 연결 후 영상 표시
+      </span>
     </div>
   );
 }

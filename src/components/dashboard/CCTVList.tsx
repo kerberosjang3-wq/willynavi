@@ -1,6 +1,10 @@
 'use client';
 import { CCTVNode } from '@/types';
 
+function isMockCCTV(url: string): boolean {
+  return !url || url.includes('example-its.go.kr');
+}
+
 interface CCTVListProps {
   cctvs: CCTVNode[];
   selectedId: string | null;
@@ -69,15 +73,19 @@ export function CCTVList({ cctvs, selectedId, recommendedId, onSelect, isWatchin
                 transition: 'all 0.2s',
               }}
             >
-              {/* 추천 배지 */}
-              {isRecommended && (
-                <span
-                  className="font-vfd mb-0.5"
-                  style={{ fontSize: '0.45rem', color: '#00ff88', letterSpacing: '0.1em' }}
-                >
-                  ▶ 추천
-                </span>
-              )}
+              {/* 배지 */}
+              <div className="flex gap-1 mb-0.5">
+                {isRecommended && (
+                  <span className="font-vfd" style={{ fontSize: '0.45rem', color: '#00ff88', letterSpacing: '0.1em' }}>
+                    ▶ 추천
+                  </span>
+                )}
+                {isMockCCTV(cctv.streamUrl) && (
+                  <span className="font-vfd" style={{ fontSize: '0.45rem', color: 'var(--cyber-amber)', letterSpacing: '0.08em' }}>
+                    MOCK
+                  </span>
+                )}
+              </div>
 
               {/* 카메라명 */}
               <span
