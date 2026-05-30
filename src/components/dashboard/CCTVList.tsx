@@ -22,7 +22,7 @@ export function CCTVList({ cctvs, selectedId, recommendedId, onSelect, isWatchin
             flexShrink: 0,
           }}
         />
-        <span className="font-vfd text-xs" style={{ color: 'var(--cyber-border)', letterSpacing: '0.08em' }}>
+        <span className="font-vfd text-xs" style={{ color: 'var(--cyber-cyan-dim)', letterSpacing: '0.08em' }}>
           {isWatching ? 'CCTV 탐색 중...' : 'GPS 신호 대기 중'}
         </span>
       </div>
@@ -38,7 +38,7 @@ export function CCTVList({ cctvs, selectedId, recommendedId, onSelect, isWatchin
         <span className="font-vfd text-xs" style={{ color: 'var(--cyber-cyan-dim)', letterSpacing: '0.1em' }}>
           주변 CCTV
         </span>
-        <span className="font-vfd text-xs" style={{ color: 'var(--cyber-border)' }}>
+        <span className="font-vfd text-xs" style={{ color: 'var(--cyber-cyan)' }}>
           {cctvs.length}개
         </span>
       </div>
