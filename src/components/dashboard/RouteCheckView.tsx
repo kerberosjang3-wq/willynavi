@@ -7,6 +7,15 @@ import type { RouteSummary } from '@/services/tmap';
 
 type Status = 'idle' | 'routing' | 'done' | 'error';
 
+const ROUTE_OPTIONS: { value: TMapRouteOption; label: string }[] = [
+  { value: '0', label: '추천'         },
+  { value: '1', label: '최단거리'     },
+  { value: '2', label: '무료도로 우선' },
+  { value: '3', label: '고속도로 우선' },
+  { value: '4', label: '고속도로 회피' },
+  { value: '5', label: '유료도로 회피' },
+];
+
 function formatTime(sec: number): string {
   const h = Math.floor(sec / 3600);
   const m = Math.ceil((sec % 3600) / 60);
@@ -284,12 +293,13 @@ export function RouteCheckView() {
   const [endText,   setEndText]   = useState('');
   const [startPt,   setStartPt]   = useState<GeoPoint | null>(null);
   const [endPt,     setEndPt]     = useState<GeoPoint | null>(null);
-  const [routeOpt,  setRouteOpt]  = useState<TMapRouteOption>('0');
-  const [status,    setStatus]    = useState<Status>('idle');
-  const [errMsg,    setErrMsg]    = useState('');
-  const [cctvs,     setCctvs]     = useState<RouteCCTV[]>([]);
-  const [selected,  setSelected]  = useState<RouteCCTV | null>(null);
-  const [summary,   setSummary]   = useState<RouteSummary | null>(null);
+  const [routeOpt,    setRouteOpt]    = useState<TMapRouteOption>('0');
+  const [status,      setStatus]      = useState<Status>('idle');
+  const [errMsg,      setErrMsg]      = useState('');
+  const [cctvs,       setCctvs]       = useState<RouteCCTV[]>([]);
+  const [selected,    setSelected]    = useState<RouteCCTV | null>(null);
+  const [summary,     setSummary]     = useState<RouteSummary | null>(null);
+  const [usedOption,  setUsedOption]  = useState<TMapRouteOption | null>(null);
 
   const canSearch = !!startPt && !!endPt;
 
@@ -300,6 +310,7 @@ export function RouteCheckView() {
       const { polyline, summary: s } = await getTMapRoute(startPt, endPt, { optionValue: routeOpt, trafficInfo: 'Y' });
       if (polyline.length < 2) throw new Error('경로를 찾을 수 없습니다');
       setSummary(s);
+      setUsedOption(routeOpt);
       const results = filterCCTVsAlongRoute(SEOUL_STATIC_CCTVS, polyline, 300);
       setCctvs(results);
       setSelected(results[0] ?? null);
@@ -345,21 +356,67 @@ export function RouteCheckView() {
           </button>
         </div>
 
-        {/* 요약 한 줄 */}
+        {/* 경로 조건 */}
+        <div className="flex flex-col gap-1">
+          <span className="font-vfd" style={{ fontSize: '0.5rem', color: 'var(--text-dim)', letterSpacing: '0.1em' }}>경로 조건</span>
+          <div className="flex flex-wrap gap-1">
+            {ROUTE_OPTIONS.map((opt) => {
+              const active = routeOpt === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => { setRouteOpt(opt.value); setSummary(null); setCctvs([]); setSelected(null); setStatus('idle'); }}
+                  className="font-vfd rounded px-2 py-1"
+                  style={{
+                    fontSize: '0.5rem',
+                    letterSpacing: '0.06em',
+                    background: active ? 'rgba(0,230,118,0.10)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${active ? 'var(--tl-green)' : 'var(--border)'}`,
+                    color: active ? 'var(--tl-green)' : 'var(--text-dim)',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {active ? '▶ ' : ''}{opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 경로 요약 (소요시간 · 거리 · 통행비) */}
         {summary && (
           <div
-            className="flex items-center justify-between px-3 py-1.5 rounded-lg"
-            style={{ background: 'rgba(255,214,0,0.06)', border: '1px solid rgba(255,214,0,0.18)' }}
+            className="flex flex-col rounded-lg px-3 py-2.5 gap-1.5"
+            style={{ background: 'rgba(255,214,0,0.06)', border: '1px solid rgba(255,214,0,0.2)' }}
           >
-            <span className="font-display font-black" style={{ fontSize: '1.1rem', color: 'var(--tl-yellow)' }}>
-              {formatTime(summary.totalTimeSec)}
-            </span>
-            <span className="font-vfd text-xs" style={{ color: 'var(--text-secondary)' }}>
-              {formatDist(summary.totalDistanceM)}
-            </span>
-            <span className="font-vfd text-xs" style={{ color: cctvs.length > 0 ? 'var(--tl-green)' : 'var(--text-dim)' }}>
-              {cctvs.length > 0 ? `📷 ${cctvs.length}개 구간` : 'CCTV 없음'}
-            </span>
+            {usedOption !== null && (
+              <span className="font-vfd text-center" style={{ fontSize: '0.45rem', color: 'var(--tl-yellow)', letterSpacing: '0.1em' }}>
+                {ROUTE_OPTIONS.find(o => o.value === usedOption)?.label ?? ''} 기준
+                {cctvs.length > 0 && <span style={{ color: 'var(--tl-green)', marginLeft: 8 }}>· 📷 {cctvs.length}개 구간</span>}
+              </span>
+            )}
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col items-center flex-1">
+                <span className="font-vfd" style={{ fontSize: '0.45rem', color: 'var(--text-dim)', letterSpacing: '0.1em' }}>소요시간</span>
+                <span className="font-display font-black" style={{ fontSize: '1.3rem', color: 'var(--tl-yellow)', lineHeight: 1.1 }}>
+                  {formatTime(summary.totalTimeSec)}
+                </span>
+              </div>
+              <div style={{ width: 1, height: 32, background: 'rgba(255,214,0,0.2)' }} />
+              <div className="flex flex-col items-center flex-1">
+                <span className="font-vfd" style={{ fontSize: '0.45rem', color: 'var(--text-dim)', letterSpacing: '0.1em' }}>거리</span>
+                <span className="font-vfd text-xs" style={{ color: 'var(--text-primary)' }}>
+                  {formatDist(summary.totalDistanceM)}
+                </span>
+              </div>
+              <div style={{ width: 1, height: 32, background: 'rgba(255,214,0,0.2)' }} />
+              <div className="flex flex-col items-center flex-1">
+                <span className="font-vfd" style={{ fontSize: '0.45rem', color: 'var(--text-dim)', letterSpacing: '0.1em' }}>통행비</span>
+                <span className="font-vfd text-xs" style={{ color: summary.totalFare > 0 ? 'var(--tl-yellow)' : 'var(--text-dim)' }}>
+                  {summary.totalFare > 0 ? `${summary.totalFare.toLocaleString()}원` : '없음'}
+                </span>
+              </div>
+            </div>
           </div>
         )}
       </div>
