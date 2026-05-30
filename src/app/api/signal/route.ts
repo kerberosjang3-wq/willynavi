@@ -63,40 +63,30 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // ── 2. 공공데이터포털 신호제어기 잔여시간 정보 서비스 ────────────────────────────
+  // ── 2. 서울시 V2X 신호제어기 잔여시간 API (t-data.seoul.go.kr) ──────────────
   const seoulSignalKey = process.env.SEOUL_SIGNAL_KEY;
   if (seoulSignalKey) {
-    const DATA_SIGNAL_URLS = [
-      'http://apis.data.go.kr/1613000/TrafficSignalInfoInqireService01/getSignalPhaseInfo',
-      'http://apis.data.go.kr/1613000/TrafficSignalInfoInqireService01/getTrafficSignalInfo',
-    ];
-    const minLat = searchParams.get('minLat');
-    const maxLat = searchParams.get('maxLat');
-    const minLng = searchParams.get('minLng');
-    const maxLng = searchParams.get('maxLng');
-    const signalParams = new URLSearchParams({
-      serviceKey: seoulSignalKey,
-      pageNo: '1',
-      numOfRows: '100',
-      type: 'json',
-      ...(intersectionId ? { itstId: intersectionId } : {}),
-      ...(minLat && minLng ? { minX: minLng, maxX: maxLng!, minY: minLat, maxY: maxLat! } : {}),
-    });
-    for (const url of DATA_SIGNAL_URLS) {
-      try {
-        const res = await fetch(`${url}?${signalParams}`, {
-          signal: AbortSignal.timeout(5000),
-        });
-        if (!res.ok) continue;
-        const data = await res.json();
-        if (data?.response?.header?.resultCode !== '00') continue;
-        const items = data?.response?.body?.items?.item ?? [];
-        const list = Array.isArray(items) ? items : items ? [items] : [];
-        if (list.length === 0) continue;
-        if (intersectionId) return NextResponse.json(list[0]);
-        return NextResponse.json({ response: { data: list } });
-      } catch { /* 다음 후보 */ }
-    }
+    try {
+      const params = new URLSearchParams({
+        apikey:     seoulSignalKey,
+        pageNum:    '1',
+        numOfRows:  intersectionId ? '5' : '100',
+        ...(intersectionId ? { itstId: intersectionId } : {}),
+      });
+      const res = await fetch(
+        `https://t-data.seoul.go.kr/apig/apiman-gateway/tapi/v2xSignalPhaseTimingInformation/1.0?${params}`,
+        { signal: AbortSignal.timeout(6000), cache: 'no-store' },
+      );
+      if (res.ok) {
+        const list: SeoulV2XSignal[] = await res.json();
+        if (Array.isArray(list) && list.length > 0) {
+          if (intersectionId) {
+            return NextResponse.json(v2xToSignalNode(list[0]));
+          }
+          return NextResponse.json({ response: { data: list.map(v2xToRawCITS) } });
+        }
+      }
+    } catch { /* 다음 후보 */ }
   }
 
   // ── 3. 경기도 GITS 실시간 신호 API 시도 (GG_API_KEY 발급 후 활성화) ─────────
@@ -153,6 +143,62 @@ function simulateCountdown(node: SignalNode): SignalNode {
   }
 
   return { ...node, remainingSeconds: remaining };
+}
+
+// ── 서울 V2X 신호 API 타입 및 변환 ────────────────────────────────────────────
+interface SeoulV2XSignal {
+  itstId: string;
+  trsmTm: string; // HHMMSS
+  ntStsgRmdrCs: number | null; // 북 직진 잔여 (deciseconds)
+  etStsgRmdrCs: number | null;
+  stStsgRmdrCs: number | null;
+  wtStsgRmdrCs: number | null;
+  ntPdsgRmdrCs: number | null; // 북 보행자
+  etPdsgRmdrCs: number | null;
+  stPdsgRmdrCs: number | null;
+  wtPdsgRmdrCs: number | null;
+}
+
+// 직진 방향 중 가장 짧은 잔여시간 → 현재 현시 종료까지 남은 시간
+function v2xRemainingSeconds(s: SeoulV2XSignal): number {
+  const vals = [s.ntStsgRmdrCs, s.etStsgRmdrCs, s.stStsgRmdrCs, s.wtStsgRmdrCs]
+    .filter((v): v is number => v !== null && v > 0);
+  if (vals.length === 0) return 0;
+  return Math.round(Math.min(...vals) / 10); // deciseconds → seconds
+}
+
+// 잔여시간이 짧을수록 직진신호 종료 임박 → GREEN으로 간주
+// (V2X SPAT는 현시 phase 별도 제공 안 함 → 경험적 추정)
+function v2xPhase(s: SeoulV2XSignal): 'GREEN' | 'YELLOW' | 'RED' {
+  const sec = v2xRemainingSeconds(s);
+  if (sec <= 3) return 'YELLOW';
+  // 직진 신호가 null이면 해당 방향 RED
+  const hasActive = [s.ntStsgRmdrCs, s.etStsgRmdrCs, s.stStsgRmdrCs, s.wtStsgRmdrCs]
+    .some((v) => v !== null && v > 0);
+  return hasActive ? 'GREEN' : 'RED';
+}
+
+function v2xToSignalNode(s: SeoulV2XSignal): Partial<SignalNode> {
+  return {
+    intersectionId: s.itstId,
+    currentPhase:   v2xPhase(s),
+    remainingSeconds: v2xRemainingSeconds(s),
+    cycleSeconds:   90,
+    lastUpdated:    Date.now(),
+  };
+}
+
+function v2xToRawCITS(s: SeoulV2XSignal) {
+  const phase = v2xPhase(s);
+  return {
+    itstId:       s.itstId,
+    intrsctNm:    `교차로 ${s.itstId}`,
+    lat:          '0',
+    lon:          '0',
+    ntPdsgStatNm: phase === 'GREEN' ? '녹색' : phase === 'YELLOW' ? '황색' : '적색',
+    remainSec:    String(v2xRemainingSeconds(s)),
+    cycleSec:     '90',
+  };
 }
 
 function toRawCITS(node: SignalNode) {
