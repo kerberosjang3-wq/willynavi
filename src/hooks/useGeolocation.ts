@@ -44,8 +44,9 @@ export function useGeolocation(): GeolocationState {
         const now = pos.timestamp;
 
         // ── heading 추정 ──────────────────────────────────────────────────────
+        // 정지 시 브라우저는 null 대신 NaN을 반환하므로 명시적으로 null로 정규화
         let finalHeading: number | null =
-          heading !== null && heading !== undefined ? heading : null;
+          heading !== null && heading !== undefined && !isNaN(heading) ? heading : null;
 
         if (finalHeading === null && prev.current) {
           const d = Math.hypot(lat - prev.current.coord.lat, lng - prev.current.coord.lng);

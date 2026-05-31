@@ -46,7 +46,7 @@ function isAhead(
   to: { lat: number; lng: number },
   heading: number | null,
 ): boolean {
-  if (heading === null) return true;
+  if (heading === null || isNaN(heading)) return true;
   const b = (bearing(from, to) + 360) % 360;
   // cos(80°) ≈ 0.17 — 80° 원뿔 이내
   return computeDotProduct(heading, b) > 0.17;
