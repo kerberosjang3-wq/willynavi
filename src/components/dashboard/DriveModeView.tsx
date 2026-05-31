@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SignalPhase, CCTVNode } from '@/types';
 import { CCTVPanel } from './CCTVPanel';
 import { SpeedCameraWidget } from './SpeedCameraWidget';
@@ -29,6 +29,10 @@ const PHASE_GLOW: Record<string, string> = {
   YELLOW:  'rgba(200,144,16,0.10)',
   RED:     'rgba(224,50,50,0.14)',
   UNKNOWN: 'transparent',
+};
+
+const NEXT_PHASE: Record<string, SignalPhase> = {
+  GREEN: 'YELLOW', YELLOW: 'RED', RED: 'GREEN', UNKNOWN: 'UNKNOWN',
 };
 
 function phaseDuration(phase: SignalPhase, cycleSeconds: number): number {
@@ -132,7 +136,42 @@ export function DriveModeView({
   const [showCCTV, setShowCCTV] = useState(false);
   const [cctvIndex, setCctvIndex] = useState(0);
 
-  const bgGlow = phase ? (PHASE_GLOW[phase] ?? 'transparent') : 'transparent';
+  // 로컬 카운트다운 상태 (API 폴 사이의 초 단위 업데이트)
+  const [localPhase, setLocalPhase] = useState<SignalPhase | null>(phase);
+  const [localRemaining, setLocalRemaining] = useState<number | null>(remainingSeconds);
+  const cycleRef = useRef(cycleSeconds);
+  cycleRef.current = cycleSeconds;
+
+  // API 폴 결과가 오면 동기화
+  useEffect(() => {
+    setLocalPhase(phase);
+    setLocalRemaining(remainingSeconds);
+  }, [phase, remainingSeconds]);
+
+  // 1초 단위 로컬 카운트다운
+  useEffect(() => {
+    const id = setInterval(() => {
+      setLocalRemaining((prev) => {
+        if (prev === null || prev <= 0) return prev;
+        if (prev - 1 <= 0) {
+          setLocalPhase((p) => {
+            if (!p || p === 'UNKNOWN') return p;
+            const next = NEXT_PHASE[p] as SignalPhase;
+            // 다음 페이즈의 기본 지속시간으로 remaining 재설정
+            setTimeout(() =>
+              setLocalRemaining(phaseDuration(next, cycleRef.current)), 0,
+            );
+            return next;
+          });
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const bgGlow = localPhase ? (PHASE_GLOW[localPhase] ?? 'transparent') : 'transparent';
   const nearestCCTV = activeCCTVs[cctvIndex] ?? null;
   const nearestDist = nearestCCTV?.distance;
 
@@ -159,8 +198,8 @@ export function DriveModeView({
         )}
 
         <ProgressRing
-          phase={phase}
-          remaining={remainingSeconds}
+          phase={localPhase}
+          remaining={localRemaining}
           cycleSeconds={cycleSeconds}
           isSafetyWarning={isSafetyWarning}
           intersectionName={intersectionName}

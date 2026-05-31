@@ -145,21 +145,26 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ error: 'signal not found' }, { status: 404 });
 }
 
-// Mock 카운트다운 시뮬레이션 — 실제 시간 기반으로 잔여 시간 계산
+// Mock 카운트다운 시뮬레이션 — 다중 사이클을 정확하게 처리
 function simulateCountdown(node: SignalNode): SignalNode {
-  const elapsed = Math.floor((Date.now() - node.lastUpdated) / 1000);
-  let remaining = Math.max(0, node.remainingSeconds - elapsed);
+  const phases = ['GREEN', 'YELLOW', 'RED'] as const;
+  type Phase = typeof phases[number];
+  const phaseDur = (p: Phase) =>
+    p === 'YELLOW' ? 5 : Math.round(node.cycleSeconds * 0.45);
 
-  if (remaining === 0) {
-    // 사이클 완료 → 다음 페이즈로 전환 (단순 순환)
-    const phases = ['GREEN', 'YELLOW', 'RED'] as const;
-    const idx = phases.indexOf(node.currentPhase as 'GREEN' | 'YELLOW' | 'RED');
-    const nextPhase = phases[(idx + 1) % 3];
-    remaining = nextPhase === 'YELLOW' ? 5 : node.cycleSeconds * 0.4;
-    return { ...node, currentPhase: nextPhase, remainingSeconds: Math.round(remaining), lastUpdated: Date.now() };
+  let current: Phase =
+    (node.currentPhase === 'UNKNOWN' ? 'RED' : node.currentPhase) as Phase;
+  let remaining = node.remainingSeconds;
+  let toConsume = Math.floor((Date.now() - node.lastUpdated) / 1000);
+
+  // 경과 시간만큼 사이클을 반복 전진
+  while (toConsume >= remaining) {
+    toConsume -= remaining;
+    current = phases[(phases.indexOf(current) + 1) % 3];
+    remaining = phaseDur(current);
   }
 
-  return { ...node, remainingSeconds: remaining };
+  return { ...node, currentPhase: current, remainingSeconds: remaining - toConsume };
 }
 
 // ── 서울 V2X 신호 API 타입 및 변환 ────────────────────────────────────────────
