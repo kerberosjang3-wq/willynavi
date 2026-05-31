@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+@import url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/css/dseg.css');
 
 @tailwind base;
 @tailwind components;
@@ -60,6 +61,8 @@ html, body {
 /* ── 폰트 유틸 ─────────────────────────────────────────────────────────────── */
 .font-vfd     { font-family: 'Share Tech Mono', 'Courier New', monospace; }
 .font-display { font-family: 'Orbitron', 'Share Tech Mono', monospace; }
+/* 전자 계기판 7세그먼트 디스플레이 폰트 (HUD 속도계 전용) */
+.font-dseg7   { font-family: 'DSEG7 Classic', monospace; font-style: italic; }
 
 /* ── 메탈릭 패널 ────────────────────────────────────────────────────────────── */
 .glass-panel {

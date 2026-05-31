@@ -207,12 +207,12 @@ export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, t
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25em' }}>
             <span
-              className="font-display font-black"
+              className="font-dseg7"
               style={{
                 fontSize: 'clamp(3.8rem, 13vw, 8rem)',
                 lineHeight: 1,
                 color: speedColor,
-                letterSpacing: '-0.03em',
+                letterSpacing: '0.05em',
                 textShadow: isShifting ? `0 0 50px ${speedColor}60` : 'none',
                 transition: 'color 0.4s, text-shadow 0.08s',
               }}
