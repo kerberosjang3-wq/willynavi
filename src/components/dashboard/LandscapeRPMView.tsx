@@ -354,7 +354,7 @@ export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, t
       <div style={PANEL_STYLE}>
         {/* 브랜딩 + GPS */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-          <span className="font-display" style={{ fontSize: '0.46rem', color: '#4878A8', letterSpacing: '0.26em' }}>
+          <span className="font-display" style={{ fontSize: '0.46rem', color: '#FFFFFF', letterSpacing: '0.26em' }}>
             WILLY<span style={{ color: '#A87800', margin: '0 2px' }}>·</span>NAVI
           </span>
           <span className="font-vfd" style={{ fontSize: '0.3rem', color: hasSpeed ? '#1A4A28' : '#3A2A10', letterSpacing: '0.1em' }}>
