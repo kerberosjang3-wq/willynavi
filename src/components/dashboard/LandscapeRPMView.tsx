@@ -409,7 +409,7 @@ export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, t
             justifyContent: 'center',
           }}
         >
-          <SpeedCameraWidget camera={camera} speedKmh={speedKmh} />
+          <SpeedCameraWidget camera={camera} speedKmh={speedKmh} compact />
         </div>
       )}
     </div>
