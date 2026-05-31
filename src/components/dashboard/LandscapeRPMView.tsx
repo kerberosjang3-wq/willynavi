@@ -41,15 +41,10 @@ const TRAFFIC_LABEL: Record<TrafficLevel, string> = {
   smooth: '원활', slow: '서행', congested: '정체',
 };
 
-// ── 공통 카드 ──────────────────────────────────────────────────────────────────
-
+// 정보 있을 때만 테두리 없이 텍스트만 표시하는 카드
 const CARD_STYLE: React.CSSProperties = {
   flex: '1 1 0',
   width: '100%',
-  background: 'linear-gradient(145deg, #1C1C1C 0%, #111111 100%)',
-  border: '1px solid #2A2A2A',
-  borderTop: '1px solid #3C3C3C',
-  borderLeft: '1px solid #363636',
   borderRadius: 10,
   padding: '8px 10px',
   display: 'flex',
@@ -57,88 +52,70 @@ const CARD_STYLE: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
   gap: 4,
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 6px rgba(0,0,0,0.5)',
 };
 
-function InfoCard({ label, children }: { label: string; children: React.ReactNode }) {
+// ① 제한속도 — limit 없으면 렌더링 안 함
+function SpeedLimitCard({ limit, speedKmh }: { limit: number | null; speedKmh: number | null }) {
+  if (limit === null) return null;
+  const isOver = speedKmh !== null && Math.round(speedKmh) > limit;
   return (
     <div style={CARD_STYLE}>
-      <span className="font-vfd" style={{ fontSize: '0.3rem', color: '#3A3A3A', letterSpacing: '0.16em' }}>
-        {label}
+      <span className="font-vfd" style={{ fontSize: '0.3rem', color: '#4A4A4A', letterSpacing: '0.16em' }}>
+        제한속도
       </span>
-      {children}
+      <span
+        className={`font-display font-black ${isOver ? 'safety-blink' : ''}`}
+        style={{ fontSize: '1.4rem', lineHeight: 1, color: isOver ? '#E03232' : '#B0B0B0' }}
+      >
+        {limit}
+      </span>
+      <span className="font-vfd" style={{ fontSize: '0.28rem', color: isOver ? '#E0323266' : '#404040' }}>
+        {isOver ? '▲ 초과' : 'km/h'}
+      </span>
     </div>
   );
 }
 
-// ① 제한속도
-function SpeedLimitCard({ limit, speedKmh }: { limit: number | null; speedKmh: number | null }) {
-  const isOver = limit !== null && speedKmh !== null && Math.round(speedKmh) > limit;
-  return (
-    <InfoCard label="제한속도">
-      {limit !== null ? (
-        <>
-          <span
-            className={`font-display font-black ${isOver ? 'safety-blink' : ''}`}
-            style={{ fontSize: '1.4rem', lineHeight: 1, color: isOver ? '#E03232' : '#B0B0B0' }}
-          >
-            {limit}
-          </span>
-          <span className="font-vfd" style={{ fontSize: '0.28rem', color: isOver ? '#E0323266' : '#363636' }}>
-            {isOver ? '▲ 초과' : 'km/h'}
-          </span>
-        </>
-      ) : (
-        <span className="font-display" style={{ fontSize: '1rem', color: '#282828', lineHeight: 1 }}>--</span>
-      )}
-    </InfoCard>
-  );
-}
-
-// ② 교통흐름
+// ② 교통흐름 — level 없으면 렌더링 안 함
 function TrafficCard({ level, avgKmh }: { level: TrafficLevel | null; avgKmh: number | null }) {
-  const color = level ? TRAFFIC_COLOR[level] : '#282828';
+  if (level === null) return null;
+  const color = TRAFFIC_COLOR[level];
   return (
-    <InfoCard label="교통흐름">
+    <div style={CARD_STYLE}>
+      <span className="font-vfd" style={{ fontSize: '0.3rem', color: '#4A4A4A', letterSpacing: '0.16em' }}>
+        교통흐름
+      </span>
       <span className="font-display font-black" style={{ fontSize: '0.9rem', lineHeight: 1, color }}>
-        {level ? TRAFFIC_LABEL[level] : '--'}
+        {TRAFFIC_LABEL[level]}
       </span>
       {avgKmh !== null && (
         <span className="font-vfd" style={{ fontSize: '0.28rem', color: `${color}80` }}>
           {avgKmh} km/h
         </span>
       )}
-      {!level && (
-        <span className="font-vfd" style={{ fontSize: '0.28rem', color: '#2A2A2A' }}>대기중</span>
-      )}
-    </InfoCard>
+    </div>
   );
 }
 
-// ③ 스쿨존
+// ③ 스쿨존 — distM 없으면 렌더링 안 함
 function SchoolZoneCard({ distM }: { distM: number | null }) {
-  const isNear    = distM !== null && distM <= 200;
-  const isWarning = distM !== null && distM <= 500;
+  if (distM === null) return null;
+  const isNear    = distM <= 200;
+  const isWarning = distM <= 500;
   const color     = isNear ? '#E03232' : isWarning ? '#C89010' : '#4878A8';
   return (
-    <InfoCard label="스쿨존">
-      {distM !== null ? (
-        <>
-          <span style={{ fontSize: '0.9rem', lineHeight: 1 }}>🏫</span>
-          <span
-            className={`font-display font-black ${isNear ? 'count-blink' : ''}`}
-            style={{ fontSize: '0.82rem', lineHeight: 1, color }}
-          >
-            {distM < 1000 ? `${distM}m` : `${(distM / 1000).toFixed(1)}km`}
-          </span>
-        </>
-      ) : (
-        <>
-          <span style={{ fontSize: '0.9rem', lineHeight: 1, opacity: 0.1 }}>🏫</span>
-          <span className="font-vfd" style={{ fontSize: '0.28rem', color: '#282828' }}>없음</span>
-        </>
-      )}
-    </InfoCard>
+    <div style={CARD_STYLE}>
+      <span className="font-vfd" style={{ fontSize: '0.3rem', color: '#4A4A4A', letterSpacing: '0.16em' }}>
+        스쿨존
+      </span>
+      <span style={{ fontSize: '0.9rem', lineHeight: 1 }}>🏫</span>
+      <span
+        className={`font-display font-black ${isNear ? 'count-blink' : ''}`}
+        style={{ fontSize: '0.82rem', lineHeight: 1, color }}
+      >
+        {distM < 1000 ? `${distM}m` : `${(distM / 1000).toFixed(1)}km`}
+      </span>
+    </div>
   );
 }
 
@@ -146,13 +123,15 @@ function SchoolZoneCard({ distM }: { distM: number | null }) {
 
 export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, trafficSpeedKmh, schoolZoneM }: Props) {
   const { rpm, isShifting, hasSpeed } = useVirtualRPM(speedKmh);
-  const isNight = useIsNight();
+  useIsNight(); // 시간 기반 재렌더 유지 (추후 확장용)
 
   const speedDisplay = speedKmh !== null ? Math.round(speedKmh) : '--';
   const rpmRatio     = rpm / RPM_MAX;
   const zoneColor    = rpmZoneColor(rpm);
-  // 주간: 앰버 골드 / 야간: 포레스트 그린 / GPS없음: 어둡게
-  const speedColor   = !hasSpeed ? '#282828' : isNight ? '#18A848' : '#C89010';
+  // 주야간 무관하게 흰색, GPS 없으면 어둡게
+  const speedColor   = !hasSpeed ? '#282828' : '#FFFFFF';
+
+  const hasLeftData  = speedLimit !== null || trafficLevel !== null || schoolZoneM !== null;
 
   const PANEL_STYLE: React.CSSProperties = {
     flex: '1 1 0',
@@ -195,20 +174,22 @@ export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, t
         }}
       />
 
-      {/* ── LEFT: 3개 정보 카드 ── */}
-      <div
-        style={{
-          flex: '1 1 0',
-          display: 'flex',
-          flexDirection: 'column',
-          alignSelf: 'stretch',
-          gap: 8,
-        }}
-      >
-        <SpeedLimitCard limit={speedLimit} speedKmh={speedKmh} />
-        <TrafficCard level={trafficLevel} avgKmh={trafficSpeedKmh} />
-        <SchoolZoneCard distM={schoolZoneM} />
-      </div>
+      {/* ── LEFT: 정보 있을 때만 표시 ── */}
+      {hasLeftData && (
+        <div
+          style={{
+            flex: '1 1 0',
+            display: 'flex',
+            flexDirection: 'column',
+            alignSelf: 'stretch',
+            gap: 8,
+          }}
+        >
+          <SpeedLimitCard limit={speedLimit} speedKmh={speedKmh} />
+          <TrafficCard level={trafficLevel} avgKmh={trafficSpeedKmh} />
+          <SchoolZoneCard distM={schoolZoneM} />
+        </div>
+      )}
 
       {/* ── CENTER: 속도 패널 ── */}
       <div style={PANEL_STYLE}>
@@ -222,24 +203,34 @@ export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, t
           </span>
         </div>
 
-        {/* 속도 숫자 */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-          <div
-            className="font-display font-black"
-            style={{
-              fontSize: 'clamp(3.8rem, 13vw, 8rem)',
-              lineHeight: 1,
-              color: speedColor,
-              letterSpacing: '-0.03em',
-              textShadow: isShifting ? `0 0 50px ${speedColor}60` : 'none',
-              transition: 'color 0.4s, text-shadow 0.08s',
-            }}
-          >
-            {speedDisplay}
+        {/* 속도 숫자 + km/h 인라인 */}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25em' }}>
+            <span
+              className="font-display font-black"
+              style={{
+                fontSize: 'clamp(3.8rem, 13vw, 8rem)',
+                lineHeight: 1,
+                color: speedColor,
+                letterSpacing: '-0.03em',
+                textShadow: isShifting ? `0 0 50px ${speedColor}60` : 'none',
+                transition: 'color 0.4s, text-shadow 0.08s',
+              }}
+            >
+              {speedDisplay}
+            </span>
+            <span
+              className="font-vfd"
+              style={{
+                fontSize: 'clamp(0.7rem, 2.2vw, 1.4rem)',
+                color: hasSpeed ? 'rgba(255,255,255,0.65)' : '#282828',
+                letterSpacing: '0.15em',
+                transition: 'color 0.4s',
+              }}
+            >
+              km/h
+            </span>
           </div>
-          <span className="font-vfd" style={{ fontSize: '0.58rem', color: '#2C2C2C', letterSpacing: '0.4em' }}>
-            km/h
-          </span>
         </div>
 
         {/* RPM 그라데이션 바 */}
@@ -258,7 +249,6 @@ export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, t
               </span>
             )}
           </div>
-          {/* 그라데이션 필 바 */}
           <div style={{ height: 7, background: '#080808', borderRadius: 4, overflow: 'hidden', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.8)' }}>
             <div
               style={{
@@ -284,25 +274,18 @@ export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, t
         />
       </div>
 
-      {/* ── RIGHT: 과속카메라 패널 ── */}
-      <div
-        style={{
-          ...PANEL_STYLE,
-          alignItems: camera ? 'stretch' : 'center',
-          justifyContent: 'center',
-        }}
-      >
-        {camera ? (
+      {/* ── RIGHT: 과속카메라 있을 때만 표시 ── */}
+      {camera && (
+        <div
+          style={{
+            ...PANEL_STYLE,
+            alignItems: 'stretch',
+            justifyContent: 'center',
+          }}
+        >
           <SpeedCameraWidget camera={camera} speedKmh={speedKmh} />
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, opacity: 0.12 }}>
-            <span style={{ fontSize: '2rem' }}>📷</span>
-            <span className="font-vfd" style={{ fontSize: '0.38rem', color: '#C0C0C0', letterSpacing: '0.12em' }}>
-              단속구간 없음
-            </span>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
