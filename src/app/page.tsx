@@ -264,9 +264,11 @@ function TabBar({ activeTab, onTabChange }: { activeTab: TabId; onTabChange: (t:
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className="shrink-0 py-2 rounded-lg font-vfd text-xs"
+            className="shrink-0 rounded-lg font-vfd text-xs"
             style={{
-              minWidth: 64,
+              paddingTop: 5,
+              paddingBottom: 5,
+              minWidth: 56,
               paddingLeft: 10,
               paddingRight: 10,
               letterSpacing: '0.08em',
