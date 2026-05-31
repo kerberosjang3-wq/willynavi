@@ -44,10 +44,11 @@ const TRAFFIC_LABEL: Record<TrafficLevel, string> = {
 
 // ── 중앙 정보 카드 ─────────────────────────────────────────────────────────────
 
-function InfoCard({ label, children }: { label: string; children: React.ReactNode }) {
+function InfoCard({ label, children, flex }: { label: string; children: React.ReactNode; flex?: boolean }) {
   return (
     <div
       style={{
+        flex: flex ? '1 1 0' : undefined,
         width: '100%',
         background: 'rgba(255,255,255,0.025)',
         border: '1px solid #141828',
@@ -56,6 +57,7 @@ function InfoCard({ label, children }: { label: string; children: React.ReactNod
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: 3,
       }}
     >
@@ -68,10 +70,10 @@ function InfoCard({ label, children }: { label: string; children: React.ReactNod
 }
 
 // ① 제한속도 카드
-function SpeedLimitCard({ limit, speedKmh }: { limit: number | null; speedKmh: number | null }) {
+function SpeedLimitCard({ limit, speedKmh, flex }: { limit: number | null; speedKmh: number | null; flex?: boolean }) {
   const isOver = limit !== null && speedKmh !== null && Math.round(speedKmh) > limit;
   return (
-    <InfoCard label="제한속도">
+    <InfoCard label="제한속도" flex={flex}>
       {limit !== null ? (
         <>
           <span
@@ -92,11 +94,11 @@ function SpeedLimitCard({ limit, speedKmh }: { limit: number | null; speedKmh: n
 }
 
 // ② 교통 혼잡 카드
-function TrafficCard({ level, avgKmh }: { level: TrafficLevel | null; avgKmh: number | null }) {
+function TrafficCard({ level, avgKmh, flex }: { level: TrafficLevel | null; avgKmh: number | null; flex?: boolean }) {
   const color = level ? TRAFFIC_COLOR[level] : '#1E2535';
   const label = level ? TRAFFIC_LABEL[level] : null;
   return (
-    <InfoCard label="교통흐름">
+    <InfoCard label="교통흐름" flex={flex}>
       <span className="font-display font-black" style={{ fontSize: '1rem', lineHeight: 1, color }}>
         {label ?? '--'}
       </span>
@@ -113,12 +115,12 @@ function TrafficCard({ level, avgKmh }: { level: TrafficLevel | null; avgKmh: nu
 }
 
 // ③ 스쿨존 카드
-function SchoolZoneCard({ distM }: { distM: number | null }) {
+function SchoolZoneCard({ distM, flex }: { distM: number | null; flex?: boolean }) {
   const isNear    = distM !== null && distM <= 200;
   const isWarning = distM !== null && distM <= 500;
   const color     = isNear ? '#FF4A4A' : isWarning ? '#FFD600' : '#5B9FFF';
   return (
-    <InfoCard label="스쿨존">
+    <InfoCard label="스쿨존" flex={flex}>
       {distM !== null ? (
         <>
           <span style={{ fontSize: '0.95rem', lineHeight: 1 }}>🏫</span>
@@ -182,13 +184,13 @@ export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, t
           flex: '1 1 0',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
+          alignSelf: 'stretch',
           gap: 8,
         }}
       >
-        <SpeedLimitCard limit={speedLimit} speedKmh={speedKmh} />
-        <TrafficCard level={trafficLevel} avgKmh={trafficSpeedKmh} />
-        <SchoolZoneCard distM={schoolZoneM} />
+        <SpeedLimitCard limit={speedLimit} speedKmh={speedKmh} flex />
+        <TrafficCard level={trafficLevel} avgKmh={trafficSpeedKmh} flex />
+        <SchoolZoneCard distM={schoolZoneM} flex />
       </div>
 
       {/* ── CENTER: 속도 패널 ── */}
