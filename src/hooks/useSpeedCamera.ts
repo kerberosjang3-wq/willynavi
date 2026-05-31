@@ -52,6 +52,27 @@ function isAhead(
   return computeDotProduct(heading, b) > 0.17;
 }
 
+// ── 진행방향으로 좌표 오프셋 (검색 중심 이동용) ──────────────────────────────
+
+function forwardOffset(
+  lat: number, lng: number,
+  headingDeg: number, distM: number,
+): { lat: number; lng: number } {
+  const R = 6_371_000;
+  const d = distM / R;
+  const b = (headingDeg * Math.PI) / 180;
+  const φ1 = (lat * Math.PI) / 180;
+  const λ1 = (lng * Math.PI) / 180;
+  const φ2 = Math.asin(
+    Math.sin(φ1) * Math.cos(d) + Math.cos(φ1) * Math.sin(d) * Math.cos(b),
+  );
+  const λ2 = λ1 + Math.atan2(
+    Math.sin(b) * Math.sin(d) * Math.cos(φ1),
+    Math.cos(d) - Math.sin(φ1) * Math.sin(φ2),
+  );
+  return { lat: (φ2 * 180) / Math.PI, lng: (λ2 * 180) / Math.PI };
+}
+
 // ── 최근접 전방 카메라 계산 (position 변경마다 호출) ─────────────────────────
 
 export function computeNearest(
@@ -68,7 +89,7 @@ export function computeNearest(
       ...c,
       distanceM: Math.round(haversineDistance(from, { lat: c.lat, lng: c.lng })),
     }))
-    .filter(c => c.distanceM <= 2500)
+    .filter(c => c.distanceM <= 3_500)
     .sort((a, b) => a.distanceM - b.distanceM);
 
   return candidates[0] ?? null;
@@ -81,8 +102,9 @@ export interface SpeedCameraFetchState {
   error: string | null;
 }
 
-const POLL_INTERVAL_MS = 10_000; // 10초 주기
-const SEARCH_RADIUS_M  = 3_000;  // 3km 반경
+const POLL_INTERVAL_MS  = 8_000;  // 8초 주기 (기존 10초)
+const SEARCH_RADIUS_M   = 3_500;  // API 검색 반경
+const FORWARD_OFFSET_M  = 1_500;  // 진행방향 오프셋 → 전방 유효 커버 5km
 
 // 구간단속 종료 마커(04)는 표시 불필요 — 이미 지나쳐서 진입한 상황
 const SKIP_TYPES = new Set(['04']);
@@ -103,11 +125,19 @@ export function useSpeedCameras(position: GPSPosition | null): SpeedCameraFetchS
       const key = process.env.NEXT_PUBLIC_TMAP_API_KEY;
       if (!key) return;
 
+      // heading이 유효하면 검색 중심을 전방 1.5km로 오프셋
+      // → 유효 전방 커버리지: 1.5km + 3.5km = 5km
+      const heading = pos.heading;
+      const searchOrigin =
+        heading !== null && !isNaN(heading)
+          ? forwardOffset(pos.lat, pos.lng, heading, FORWARD_OFFSET_M)
+          : { lat: pos.lat, lng: pos.lng };
+
       try {
         const params = new URLSearchParams({
           version: '1',
-          lat:     String(pos.lat),
-          lon:     String(pos.lng),
+          lat:     String(searchOrigin.lat),
+          lon:     String(searchOrigin.lng),
           radius:  String(SEARCH_RADIUS_M),
           appKey:  key,
         });
