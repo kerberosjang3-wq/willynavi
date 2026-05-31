@@ -18,6 +18,7 @@ import { CCTVNode, SignalNode } from '@/types';
 import { haversineDistance } from '@/utils/geo.utils';
 import { useSpeedCameras, computeNearest } from '@/hooks/useSpeedCamera';
 import { useTrafficInfo } from '@/hooks/useTrafficInfo';
+import { useWakeLock } from '@/hooks/useWakeLock';
 
 type TabId = 'drive' | 'routecheck' | 'nav' | 'olympic' | 'signal' | 'route';
 
@@ -33,6 +34,7 @@ export default function DashboardPage() {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
+  useWakeLock();
   const { position, error: gpsError, isWatching } = useGeolocation();
   const { nodes: nearbyNodes, cctvSource, signalSource } = useNearbyNodes(position);
   const snapping = useGPSSnapping(position, { nodes: nearbyNodes, useMock: false });
