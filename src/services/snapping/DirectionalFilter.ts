@@ -15,8 +15,8 @@ export class DirectionalFilter {
     headingDeg: number | null,
     coneDeg = 60,
   ): T[] {
-    // heading 을 모르면(정지 상태) 전방 필터링 생략
-    if (headingDeg === null) return nodes;
+    // heading 을 모르면(정지 상태) 가장 가까운 1개만 반환
+    if (headingDeg === null) return nodes.slice(0, 1);
 
     const threshold = Math.cos((coneDeg * Math.PI) / 180);
 
