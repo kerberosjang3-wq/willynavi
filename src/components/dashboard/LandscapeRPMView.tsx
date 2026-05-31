@@ -24,7 +24,6 @@ interface Props {
   schoolZoneM:     number | null;
 }
 
-// RPM 존별 메탈릭 컬러
 function rpmZoneColor(rpm: number): string {
   if (rpm >= RPM_REDLINE) return '#C83030';
   if (rpm >= 5000)        return '#A87800';
@@ -41,7 +40,6 @@ const TRAFFIC_LABEL: Record<TrafficLevel, string> = {
   smooth: '원활', slow: '서행', congested: '정체',
 };
 
-// 정보 있을 때만 테두리 없이 텍스트만 표시하는 카드
 const CARD_STYLE: React.CSSProperties = {
   flex: '1 1 0',
   width: '100%',
@@ -54,7 +52,6 @@ const CARD_STYLE: React.CSSProperties = {
   gap: 4,
 };
 
-// ① 제한속도 — limit 없으면 렌더링 안 함
 function SpeedLimitCard({ limit, speedKmh }: { limit: number | null; speedKmh: number | null }) {
   if (limit === null) return null;
   const isOver = speedKmh !== null && Math.round(speedKmh) > limit;
@@ -76,7 +73,6 @@ function SpeedLimitCard({ limit, speedKmh }: { limit: number | null; speedKmh: n
   );
 }
 
-// ② 교통흐름 — level 없으면 렌더링 안 함
 function TrafficCard({ level, avgKmh }: { level: TrafficLevel | null; avgKmh: number | null }) {
   if (level === null) return null;
   const color = TRAFFIC_COLOR[level];
@@ -97,7 +93,6 @@ function TrafficCard({ level, avgKmh }: { level: TrafficLevel | null; avgKmh: nu
   );
 }
 
-// ③ 스쿨존 — distM 없으면 렌더링 안 함
 function SchoolZoneCard({ distM }: { distM: number | null }) {
   if (distM === null) return null;
   const isNear    = distM <= 200;
@@ -119,16 +114,180 @@ function SchoolZoneCard({ distM }: { distM: number | null }) {
   );
 }
 
+// ── SVG 원형 게이지 헬퍼 ───────────────────────────────────────────────────────
+
+/** 0° = 12 o'clock, clockwise positive */
+function toXY(cx: number, cy: number, r: number, deg: number) {
+  const rad = (deg - 90) * (Math.PI / 180);
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+/** SVG clockwise arc path from startDeg to endDeg */
+function cwArc(cx: number, cy: number, r: number, startDeg: number, endDeg: number): string {
+  const s = toXY(cx, cy, r, startDeg);
+  const e = toXY(cx, cy, r, endDeg);
+  const span = ((endDeg - startDeg) % 360 + 360) % 360 || 360;
+  const large = span > 180 ? 1 : 0;
+  return `M ${s.x.toFixed(2)},${s.y.toFixed(2)} A ${r},${r} 0 ${large} 1 ${e.x.toFixed(2)},${e.y.toFixed(2)}`;
+}
+
+// 아크: 225° (7시 30분) → 시계방향 270° → 135° (4시 30분), 하단 90° 갭
+const ARC_START = 225;
+const ARC_SWEEP = 270;
+
+const RPM_ZONES = [
+  { from: 0,                     to: 3000 / RPM_MAX, color: '#3A6A9C' },
+  { from: 3000 / RPM_MAX,        to: 5000 / RPM_MAX, color: '#1A8840' },
+  { from: 5000 / RPM_MAX,        to: RPM_REDLINE / RPM_MAX, color: '#A87800' },
+  { from: RPM_REDLINE / RPM_MAX, to: 1,              color: '#C83030' },
+] as const;
+
+// ── 원형 속도계 게이지 컴포넌트 ───────────────────────────────────────────────
+
+function SpeedometerGauge({
+  speedDisplay,
+  speedColor,
+  rpmRatio,
+  zoneColor,
+  hasSpeed,
+}: {
+  speedDisplay: string | number;
+  speedColor: string;
+  rpmRatio: number;
+  zoneColor: string;
+  hasSpeed: boolean;
+}) {
+  const S  = 220;
+  const cx = S / 2;
+  const cy = S / 2;
+  const R  = S / 2 - 12; // 아크 반지름
+  const W  = 10;          // 아크 선 두께
+
+  const ratio   = Math.min(1, Math.max(0, rpmRatio));
+  const progEnd = ARC_START + ratio * ARC_SWEEP;
+
+  // 구역별 세그먼트 생성 (현재 ratio까지만)
+  const segments: { d: string; color: string }[] = [];
+  for (const z of RPM_ZONES) {
+    if (ratio <= z.from) break;
+    const segStart = ARC_START + z.from * ARC_SWEEP;
+    const segEnd   = ARC_START + Math.min(z.to, ratio) * ARC_SWEEP;
+    segments.push({ d: cwArc(cx, cy, R, segStart, segEnd), color: z.color });
+  }
+
+  // 아크 팁 위치 (둥근 끝점 글로우용)
+  const tip = ratio > 0 ? toXY(cx, cy, R, progEnd) : null;
+
+  return (
+    <svg
+      viewBox={`0 0 ${S} ${S}`}
+      style={{ width: '100%', height: '100%' }}
+      preserveAspectRatio="xMidYMid meet"
+    >
+      <defs>
+        <filter id="rpm-glow" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+          <feMerge>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+        <radialGradient id="dial-bg" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stopColor="#1C1C1C"/>
+          <stop offset="100%" stopColor="#080808"/>
+        </radialGradient>
+      </defs>
+
+      {/* 다이얼 배경 원 */}
+      <circle
+        cx={cx} cy={cy}
+        r={R - W / 2 - 1}
+        fill="url(#dial-bg)"
+        stroke="#1E1E1E"
+        strokeWidth={0.5}
+      />
+
+      {/* 배경 트랙 (270° 전체) */}
+      <path
+        d={cwArc(cx, cy, R, ARC_START, ARC_START + ARC_SWEEP)}
+        fill="none"
+        stroke="#181818"
+        strokeWidth={W}
+        strokeLinecap="round"
+      />
+
+      {/* RPM 구역별 컬러 아크 */}
+      {segments.map((seg, i) => (
+        <path
+          key={i}
+          d={seg.d}
+          fill="none"
+          stroke={seg.color}
+          strokeWidth={W}
+          strokeLinecap="butt"
+          filter="url(#rpm-glow)"
+        />
+      ))}
+
+      {/* 시작점 둥근 캡 */}
+      {ratio > 0 && (() => {
+        const start = toXY(cx, cy, R, ARC_START);
+        return (
+          <circle cx={start.x} cy={start.y} r={W / 2} fill="#3A6A9C" filter="url(#rpm-glow)"/>
+        );
+      })()}
+
+      {/* 끝점 둥근 캡 (팁 글로우) */}
+      {tip && (
+        <circle cx={tip.x} cy={tip.y} r={W / 2} fill={zoneColor} filter="url(#rpm-glow)"/>
+      )}
+
+      {/* 속도 숫자 */}
+      <text
+        x={cx}
+        y={cy - 5}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        style={{
+          fontFamily: '"DSEG7 Classic", monospace',
+          fontStyle: 'italic',
+          fontSize: S * 0.27,
+          fill: speedColor,
+          transition: 'fill 0.4s',
+          letterSpacing: '0.05em',
+        }}
+      >
+        {speedDisplay}
+      </text>
+
+      {/* km/h 라벨 */}
+      <text
+        x={cx}
+        y={cy + S * 0.21}
+        textAnchor="middle"
+        style={{
+          fontFamily: "'Share Tech Mono', monospace",
+          fontSize: S * 0.068,
+          fill: hasSpeed ? 'rgba(255,255,255,0.5)' : '#282828',
+          letterSpacing: '3px',
+          transition: 'fill 0.4s',
+        }}
+      >
+        km/h
+      </text>
+    </svg>
+  );
+}
+
 // ── 메인 컴포넌트 ──────────────────────────────────────────────────────────────
 
 export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, trafficSpeedKmh, schoolZoneM }: Props) {
   const { rpm, isShifting, hasSpeed } = useVirtualRPM(speedKmh);
-  useIsNight(); // 시간 기반 재렌더 유지 (추후 확장용)
+  useIsNight();
 
   const speedDisplay = speedKmh !== null ? Math.round(speedKmh) : '--';
   const rpmRatio     = rpm / RPM_MAX;
   const zoneColor    = rpmZoneColor(rpm);
-  // 주야간 무관하게 흰색, GPS 없으면 어둡게
   const speedColor   = !hasSpeed ? '#282828' : '#FFFFFF';
 
   const hasLeftData  = speedLimit !== null || trafficLevel !== null || schoolZoneM !== null;
@@ -194,7 +353,7 @@ export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, t
       {/* ── CENTER: 속도 패널 ── */}
       <div style={PANEL_STYLE}>
         {/* 브랜딩 + GPS */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
           <span className="font-display" style={{ fontSize: '0.46rem', color: '#4878A8', letterSpacing: '0.26em' }}>
             WILLY<span style={{ color: '#A87800', margin: '0 2px' }}>·</span>NAVI
           </span>
@@ -203,64 +362,31 @@ export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, t
           </span>
         </div>
 
-        {/* 속도 숫자 + km/h 인라인 */}
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25em' }}>
-            <span
-              className="font-dseg7"
-              style={{
-                fontSize: 'clamp(3.8rem, 13vw, 8rem)',
-                lineHeight: 1,
-                color: speedColor,
-                letterSpacing: '0.05em',
-                textShadow: isShifting ? `0 0 50px ${speedColor}60` : 'none',
-                transition: 'color 0.4s, text-shadow 0.08s',
-              }}
-            >
-              {speedDisplay}
-            </span>
-            <span
-              className="font-vfd"
-              style={{
-                fontSize: 'clamp(0.7rem, 2.2vw, 1.4rem)',
-                color: hasSpeed ? 'rgba(255,255,255,0.65)' : '#282828',
-                letterSpacing: '0.15em',
-                transition: 'color 0.4s',
-              }}
-            >
-              km/h
-            </span>
-          </div>
+        {/* 원형 속도계 + RPM 아크 */}
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <SpeedometerGauge
+            speedDisplay={speedDisplay}
+            speedColor={speedColor}
+            rpmRatio={rpmRatio}
+            zoneColor={zoneColor}
+            hasSpeed={hasSpeed}
+          />
         </div>
 
-        {/* RPM 그라데이션 바 */}
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-            <span
-              className="font-display"
-              style={{ fontSize: '0.55rem', color: rpm >= RPM_REDLINE ? '#C83030' : '#383838', fontVariantNumeric: 'tabular-nums', transition: 'color 0.15s' }}
-            >
-              {rpm.toLocaleString()}
+        {/* RPM 수치 */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span
+            className="font-display"
+            style={{ fontSize: '0.55rem', color: rpm >= RPM_REDLINE ? '#C83030' : '#383838', fontVariantNumeric: 'tabular-nums', transition: 'color 0.15s' }}
+          >
+            {rpm.toLocaleString()}
+          </span>
+          <span className="font-vfd" style={{ fontSize: '0.36rem', color: '#222222', letterSpacing: '0.18em' }}>RPM</span>
+          {rpm >= RPM_REDLINE && (
+            <span className="font-vfd" style={{ fontSize: '0.36rem', color: '#C83030', animation: 'safety-blink 0.4s step-end infinite' }}>
+              ▲ REDLINE
             </span>
-            <span className="font-vfd" style={{ fontSize: '0.36rem', color: '#222222', letterSpacing: '0.18em' }}>RPM</span>
-            {rpm >= RPM_REDLINE && (
-              <span className="font-vfd" style={{ fontSize: '0.36rem', color: '#C83030', animation: 'safety-blink 0.4s step-end infinite' }}>
-                ▲ REDLINE
-              </span>
-            )}
-          </div>
-          <div style={{ height: 7, background: '#080808', borderRadius: 4, overflow: 'hidden', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.8)' }}>
-            <div
-              style={{
-                width: `${rpmRatio * 100}%`,
-                height: '100%',
-                background: 'linear-gradient(to right, #3A6A9C 0%, #1A8840 43%, #A87800 71%, #C83030 86%)',
-                borderRadius: 4,
-                transition: 'width 0.07s linear',
-                boxShadow: `0 0 6px 1px ${zoneColor}60`,
-              }}
-            />
-          </div>
+          )}
         </div>
 
         {/* 존 앰비언트 글로우 */}
