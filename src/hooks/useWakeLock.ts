@@ -1,31 +1,29 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import NoSleep from 'nosleep.js';
 
-// 화면 잠금 방지 — 앱이 포그라운드에 있는 동안 Wake Lock 유지
-// 탭 전환·화면 off 후 복귀 시 자동 재획득
+// 화면 잠금 방지
+// - Android Chrome / Samsung Internet: Wake Lock API 사용
+// - iPhone Safari (iOS): 무음 동영상 루프 재생으로 우회 (nosleep.js)
+// 둘 다 사용자 인터랙션(터치/클릭) 후 자동 활성화
 export function useWakeLock() {
-  const lockRef = useRef<WakeLockSentinel | null>(null);
-
-  const acquire = async () => {
-    if (!('wakeLock' in navigator)) return;
-    try {
-      lockRef.current = await navigator.wakeLock.request('screen');
-    } catch {
-      // 배터리 부족 등으로 실패해도 무시
-    }
-  };
+  const noSleepRef = useRef<NoSleep | null>(null);
 
   useEffect(() => {
-    acquire();
+    noSleepRef.current = new NoSleep();
 
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') acquire();
+    const enable = () => {
+      noSleepRef.current?.enable().catch(() => {});
     };
-    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    // 첫 터치/클릭 시 활성화 (iOS 자동재생 정책 대응)
+    document.addEventListener('touchstart', enable, { capture: true, once: true });
+    document.addEventListener('click',      enable, { capture: true, once: true });
 
     return () => {
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-      lockRef.current?.release().catch(() => {});
+      document.removeEventListener('touchstart', enable, { capture: true });
+      document.removeEventListener('click',      enable, { capture: true });
+      noSleepRef.current?.disable();
     };
   }, []);
 }
