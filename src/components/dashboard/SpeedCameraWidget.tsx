@@ -41,17 +41,17 @@ function urgencyOf(distM: number): Urgency {
 }
 
 const URGENCY_COLOR: Record<Urgency, string> = {
-  critical: '#FF4A4A',
-  high:     '#FF8C42',
-  mid:      '#FFD600',
-  low:      '#5B9FFF',
+  critical: '#E03232',
+  high:     '#C06820',
+  mid:      '#A87800',
+  low:      '#3A6A9C',
 };
 
 const URGENCY_BG: Record<Urgency, string> = {
-  critical: 'rgba(255,74,74,0.13)',
-  high:     'rgba(255,140,66,0.11)',
-  mid:      'rgba(255,214,0,0.08)',
-  low:      'rgba(91,159,255,0.06)',
+  critical: 'rgba(224,50,50,0.12)',
+  high:     'rgba(192,104,32,0.10)',
+  mid:      'rgba(168,120,0,0.08)',
+  low:      'rgba(58,106,156,0.07)',
 };
 
 // ── 컴포넌트 ─────────────────────────────────────────────────────────────────

@@ -18,16 +18,16 @@ interface DriveModeViewProps {
 }
 
 const PHASE_COLOR: Record<string, string> = {
-  GREEN:   '#00E676',
-  YELLOW:  '#FFD600',
-  RED:     '#FF4A4A',
-  UNKNOWN: '#252836',
+  GREEN:   '#18A848',
+  YELLOW:  '#C89010',
+  RED:     '#E03232',
+  UNKNOWN: '#2A2A2A',
 };
 
 const PHASE_GLOW: Record<string, string> = {
-  GREEN:   'rgba(0,230,118,0.08)',
-  YELLOW:  'rgba(255,214,0,0.08)',
-  RED:     'rgba(255,74,74,0.12)',
+  GREEN:   'rgba(24,168,72,0.10)',
+  YELLOW:  'rgba(200,144,16,0.10)',
+  RED:     'rgba(224,50,50,0.14)',
   UNKNOWN: 'transparent',
 };
 
