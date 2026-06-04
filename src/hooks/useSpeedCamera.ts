@@ -122,9 +122,6 @@ export function useSpeedCameras(position: GPSPosition | null): SpeedCameraFetchS
       const pos = posRef.current;
       if (!pos) return;
 
-      const key = process.env.NEXT_PUBLIC_TMAP_API_KEY;
-      if (!key) return;
-
       // heading이 유효하면 검색 중심을 전방 1.5km로 오프셋
       // → 유효 전방 커버리지: 1.5km + 3.5km = 5km
       const heading = pos.heading;
@@ -135,16 +132,12 @@ export function useSpeedCameras(position: GPSPosition | null): SpeedCameraFetchS
 
       try {
         const params = new URLSearchParams({
-          version: '1',
-          lat:     String(searchOrigin.lat),
-          lon:     String(searchOrigin.lng),
-          radius:  String(SEARCH_RADIUS_M),
-          appKey:  key,
+          lat:    String(searchOrigin.lat),
+          lng:    String(searchOrigin.lng),
+          radius: String(SEARCH_RADIUS_M),
         });
 
-        const res = await fetch(
-          `https://apis.openapi.sk.com/tmap/safety/speed?${params}`,
-        );
+        const res = await fetch(`/api/speed-cameras?${params}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const json = await res.json();
