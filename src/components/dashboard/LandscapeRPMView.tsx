@@ -253,7 +253,7 @@ function SpeedometerGauge({
           fontStyle: 'italic',
           fontSize: S * 0.27,
           fill: speedColor,
-          transition: 'fill 0.4s',
+          transition: 'none',
           letterSpacing: '0.05em',
         }}
       >
@@ -270,7 +270,7 @@ function SpeedometerGauge({
           fontSize: S * 0.068,
           fill: hasSpeed ? 'rgba(255,255,255,0.5)' : '#282828',
           letterSpacing: '3px',
-          transition: 'fill 0.4s',
+          transition: 'none',
         }}
       >
         km/h

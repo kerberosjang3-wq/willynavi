@@ -24,6 +24,7 @@ export function useGeolocation(): GeolocationState {
 
   const prev = useRef<PrevSnapshot | null>(null);
   const watchId = useRef<number | null>(null);
+  const lastValidSpeed = useRef<{ value: number; ts: number } | null>(null);
 
   useEffect(() => {
     if (!('geolocation' in navigator)) {
@@ -60,10 +61,17 @@ export function useGeolocation(): GeolocationState {
         if (finalSpeed === null && prev.current) {
           const distM = haversineDistance(prev.current.coord, curr);
           const dtSec = (now - prev.current.timestamp) / 1000;
-          // 최소 2m 이동 + 0.3초 이상 경과한 경우만 계산
-          if (distM >= 2 && dtSec >= 0.3) {
+          if (distM >= 0.5 && dtSec >= 0.2) {
             finalSpeed = distM / dtSec; // m/s
           }
+        }
+
+        // GPS가 일시적으로 speed를 빠뜨릴 때 마지막 유효값을 최대 3초 유지
+        // → 속도 표시가 '--' 로 순간 깜빡이는 현상 방지
+        if (finalSpeed !== null) {
+          lastValidSpeed.current = { value: finalSpeed, ts: now };
+        } else if (lastValidSpeed.current && now - lastValidSpeed.current.ts < 3_000) {
+          finalSpeed = lastValidSpeed.current.value;
         }
 
         prev.current = { coord: curr, timestamp: now };
