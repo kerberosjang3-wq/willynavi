@@ -1,9 +1,49 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useVirtualRPM, RPM_REDLINE, RPM_MAX } from '@/hooks/useVirtualRPM';
 import { SpeedCamera } from '@/hooks/useSpeedCamera';
 import { TrafficLevel } from '@/hooks/useTrafficInfo';
 import { SpeedCameraWidget } from './SpeedCameraWidget';
+
+// GPS는 1~3초마다 업데이트 — 그 사이 60fps로 보간해 부드럽게 표시
+function useSmoothedSpeed(rawKmh: number | null): number | null {
+  const targetRef    = useRef<number | null>(rawKmh);
+  targetRef.current  = rawKmh;
+
+  const smoothRef    = useRef<number | null>(null);
+  const lastValidRef = useRef<number>(0);
+  const prevDisplay  = useRef<number | null>(null);
+  const [display, setDisplay] = useState<number | null>(null);
+
+  useEffect(() => {
+    let raf: number;
+    const tick = () => {
+      const raw = targetRef.current;
+      const now = Date.now();
+
+      if (raw !== null) {
+        lastValidRef.current = now;
+        smoothRef.current = smoothRef.current === null
+          ? raw
+          : smoothRef.current + (raw - smoothRef.current) * 0.15;
+      } else if (now - lastValidRef.current >= 4_000) {
+        smoothRef.current = null;
+      }
+      // GPS 일시적 null → 마지막 보간값 유지 (최대 4초)
+
+      const next = smoothRef.current !== null ? Math.round(smoothRef.current) : null;
+      if (next !== prevDisplay.current) {
+        prevDisplay.current = next;
+        setDisplay(next);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  return display;
+}
 
 function useIsNight(): boolean {
   const check = () => { const h = new Date().getHours(); return h < 6 || h >= 20; };
@@ -282,13 +322,15 @@ function SpeedometerGauge({
 // ── 메인 컴포넌트 ──────────────────────────────────────────────────────────────
 
 export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, trafficSpeedKmh, schoolZoneM }: Props) {
-  const { rpm, isShifting, hasSpeed } = useVirtualRPM(speedKmh);
+  const { rpm, isShifting } = useVirtualRPM(speedKmh);
+  const smoothedKmh = useSmoothedSpeed(speedKmh);
   useIsNight();
 
-  const speedDisplay = speedKmh !== null ? Math.round(speedKmh) : '--';
+  const speedDisplay = smoothedKmh !== null ? smoothedKmh : '--';
   const rpmRatio     = rpm / RPM_MAX;
   const zoneColor    = rpmZoneColor(rpm);
-  const speedColor   = !hasSpeed ? '#282828' : '#FFFFFF';
+  const speedColor   = smoothedKmh === null ? '#282828' : '#FFFFFF';
+  const hasSpeed     = smoothedKmh !== null;
 
   const hasLeftData  = speedLimit !== null || trafficLevel !== null || schoolZoneM !== null;
 

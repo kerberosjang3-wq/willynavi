@@ -70,7 +70,7 @@ export function useGeolocation(): GeolocationState {
         // → 속도 표시가 '--' 로 순간 깜빡이는 현상 방지
         if (finalSpeed !== null) {
           lastValidSpeed.current = { value: finalSpeed, ts: now };
-        } else if (lastValidSpeed.current && now - lastValidSpeed.current.ts < 3_000) {
+        } else if (lastValidSpeed.current && now - lastValidSpeed.current.ts < 4_000) {
           finalSpeed = lastValidSpeed.current.value;
         }
 
