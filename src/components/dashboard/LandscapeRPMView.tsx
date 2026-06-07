@@ -326,10 +326,28 @@ export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, t
   const smoothedKmh = useSmoothedSpeed(speedKmh);
   useIsNight();
 
+  // 카메라 1km 이내 + 제한속도 초과 여부
+  const isOverSpeed =
+    camera !== null &&
+    camera.speedLimit > 0 &&
+    smoothedKmh !== null &&
+    smoothedKmh > camera.speedLimit;
+
+  // 과속 시 속도 숫자 점멸 (빨강 ↔ 흰색, 350ms)
+  const [blinkOn, setBlinkOn] = useState(true);
+  useEffect(() => {
+    if (!isOverSpeed) { setBlinkOn(true); return; }
+    const id = setInterval(() => setBlinkOn(v => !v), 350);
+    return () => clearInterval(id);
+  }, [isOverSpeed]);
+
   const speedDisplay = smoothedKmh !== null ? smoothedKmh : '--';
   const rpmRatio     = rpm / RPM_MAX;
   const zoneColor    = rpmZoneColor(rpm);
-  const speedColor   = smoothedKmh === null ? '#282828' : '#FFFFFF';
+  const speedColor   =
+    smoothedKmh === null ? '#282828'
+    : isOverSpeed        ? (blinkOn ? '#FF2222' : '#FFFFFF')
+    :                      '#FFFFFF';
   const hasSpeed     = smoothedKmh !== null;
 
   const hasLeftData  = speedLimit !== null || trafficLevel !== null || schoolZoneM !== null;
