@@ -19,6 +19,8 @@ import { haversineDistance } from '@/utils/geo.utils';
 import { useSpeedCameras, computeNearest } from '@/hooks/useSpeedCamera';
 import { useTrafficInfo } from '@/hooks/useTrafficInfo';
 import { useWakeLock } from '@/hooks/useWakeLock';
+import { useRoadName } from '@/hooks/useRoadName';
+import { useDangerZone } from '@/hooks/useDangerZone';
 
 type TabId = 'drive' | 'routecheck' | 'nav' | 'olympic' | 'signal' | 'route';
 
@@ -90,7 +92,9 @@ export default function DashboardPage() {
     [rawCameras, position],
   );
 
-  const traffic = useTrafficInfo(position);
+  const traffic    = useTrafficInfo(position);
+  const roadName   = useRoadName(position);
+  const dangerZone = useDangerZone(position);
 
   // 현재 도로 제한속도: 전방 1km 이내 카메라 speedLimit 활용
   const currentSpeedLimit = useMemo(() => {
@@ -238,6 +242,8 @@ export default function DashboardPage() {
           trafficLevel={traffic.level}
           trafficSpeedKmh={traffic.avgSpeedKmh}
           schoolZoneM={schoolZone?.distanceM ?? null}
+          roadName={roadName}
+          dangerZone={dangerZone}
         />
       )}
     </main>

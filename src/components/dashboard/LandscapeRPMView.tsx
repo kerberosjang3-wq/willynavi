@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useVirtualRPM, RPM_REDLINE, RPM_MAX } from '@/hooks/useVirtualRPM';
 import { SpeedCamera } from '@/hooks/useSpeedCamera';
 import { TrafficLevel } from '@/hooks/useTrafficInfo';
+import { DangerZone, DANGER_LABEL, DANGER_ICON } from '@/hooks/useDangerZone';
 import { SpeedCameraWidget } from './SpeedCameraWidget';
 
 // GPS는 1~3초마다 업데이트 — 그 사이 60fps로 보간해 부드럽게 표시
@@ -62,6 +63,8 @@ interface Props {
   trafficLevel:    TrafficLevel | null;
   trafficSpeedKmh: number | null;
   schoolZoneM:     number | null;
+  roadName:        string | null;
+  dangerZone:      DangerZone | null;
 }
 
 function rpmZoneColor(rpm: number): string {
@@ -149,6 +152,26 @@ function SchoolZoneCard({ distM }: { distM: number | null }) {
         style={{ fontSize: '0.82rem', lineHeight: 1, color }}
       >
         {distM < 1000 ? `${distM}m` : `${(distM / 1000).toFixed(1)}km`}
+      </span>
+    </div>
+  );
+}
+
+function DangerZoneCard({ zone }: { zone: DangerZone | null }) {
+  if (!zone) return null;
+  const isNear = zone.distanceM <= 200;
+  const color  = isNear ? '#E03232' : '#C89010';
+  return (
+    <div style={CARD_STYLE}>
+      <span className="font-vfd" style={{ fontSize: '0.3rem', color: '#4A4A4A', letterSpacing: '0.16em' }}>
+        {DANGER_LABEL[zone.type]}
+      </span>
+      <span style={{ fontSize: '0.9rem', lineHeight: 1 }}>{DANGER_ICON[zone.type]}</span>
+      <span
+        className={`font-display font-black ${isNear ? 'count-blink' : ''}`}
+        style={{ fontSize: '0.82rem', lineHeight: 1, color }}
+      >
+        {zone.distanceM}m
       </span>
     </div>
   );
@@ -321,7 +344,7 @@ function SpeedometerGauge({
 
 // ── 메인 컴포넌트 ──────────────────────────────────────────────────────────────
 
-export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, trafficSpeedKmh, schoolZoneM }: Props) {
+export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, trafficSpeedKmh, schoolZoneM, roadName, dangerZone }: Props) {
   const { rpm, isShifting } = useVirtualRPM(speedKmh);
   const smoothedKmh = useSmoothedSpeed(speedKmh);
   useIsNight();
@@ -350,7 +373,7 @@ export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, t
     :                      '#FFFFFF';
   const hasSpeed     = smoothedKmh !== null;
 
-  const hasLeftData  = speedLimit !== null || trafficLevel !== null || schoolZoneM !== null;
+  const hasLeftData  = speedLimit !== null || trafficLevel !== null || schoolZoneM !== null || dangerZone !== null;
 
   const PANEL_STYLE: React.CSSProperties = {
     flex: '1 1 0',
@@ -407,13 +430,14 @@ export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, t
           <SpeedLimitCard limit={speedLimit} speedKmh={speedKmh} />
           <TrafficCard level={trafficLevel} avgKmh={trafficSpeedKmh} />
           <SchoolZoneCard distM={schoolZoneM} />
+          <DangerZoneCard zone={dangerZone} />
         </div>
       )}
 
       {/* ── CENTER: 속도 패널 ── */}
       <div style={PANEL_STYLE}>
         {/* 브랜딩 + GPS */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: roadName ? 2 : 4 }}>
           <span className="font-display" style={{ fontSize: '0.46rem', color: '#FFFFFF', letterSpacing: '0.26em' }}>
             WILLY<span style={{ color: '#A87800', margin: '0 2px' }}>·</span>NAVI
           </span>
@@ -421,6 +445,15 @@ export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, t
             {hasSpeed ? 'GPS·ON' : 'GPS·WAIT'}
           </span>
         </div>
+
+        {/* 현재 도로명 */}
+        {roadName && (
+          <div style={{ textAlign: 'center', marginBottom: 3 }}>
+            <span className="font-vfd" style={{ fontSize: '0.3rem', color: '#666666', letterSpacing: '0.1em' }}>
+              {roadName}
+            </span>
+          </div>
+        )}
 
         {/* 원형 속도계 + RPM 아크 */}
         <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
