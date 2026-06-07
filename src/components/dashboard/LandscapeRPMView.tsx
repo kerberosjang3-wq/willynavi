@@ -4,6 +4,7 @@ import { useVirtualRPM, RPM_REDLINE, RPM_MAX } from '@/hooks/useVirtualRPM';
 import { SpeedCamera } from '@/hooks/useSpeedCamera';
 import { TrafficLevel } from '@/hooks/useTrafficInfo';
 import { DangerZone, DANGER_LABEL, DANGER_ICON } from '@/hooks/useDangerZone';
+import { useAlertSound } from '@/hooks/useAlertSound';
 import { SpeedCameraWidget } from './SpeedCameraWidget';
 
 // GPS는 1~3초마다 업데이트 — 그 사이 60fps로 보간해 부드럽게 표시
@@ -347,6 +348,7 @@ function SpeedometerGauge({
 export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, trafficSpeedKmh, schoolZoneM, roadName, dangerZone }: Props) {
   const { rpm, isShifting } = useVirtualRPM(speedKmh);
   const smoothedKmh = useSmoothedSpeed(speedKmh);
+  const playAlert   = useAlertSound();
   useIsNight();
 
   // 카메라 1km 이내 + 제한속도 초과 여부
@@ -355,6 +357,28 @@ export function LandscapeRPMView({ speedKmh, camera, speedLimit, trafficLevel, t
     camera.speedLimit > 0 &&
     smoothedKmh !== null &&
     smoothedKmh > camera.speedLimit;
+
+  // ── 경고음 트리거 (상태 전환 감지) ─────────────────────────────────────────
+  const prevCamId    = useRef<string | null>(null);
+  const prevOverSpeed = useRef(false);
+  const prevDangerId = useRef<string | null>(null);
+
+  useEffect(() => {
+    const id = camera?.id ?? null;
+    if (id && !prevCamId.current) playAlert('camera');   // null → 카메라 감지
+    prevCamId.current = id;
+  }, [camera?.id, playAlert]);
+
+  useEffect(() => {
+    if (isOverSpeed && !prevOverSpeed.current) playAlert('overspeed'); // 속도초과 진입
+    prevOverSpeed.current = isOverSpeed;
+  }, [isOverSpeed, playAlert]);
+
+  useEffect(() => {
+    const id = dangerZone?.id ?? null;
+    if (id && !prevDangerId.current) playAlert('danger'); // null → 위험구간 감지
+    prevDangerId.current = id;
+  }, [dangerZone?.id, playAlert]);
 
   // 과속 시 속도 숫자 점멸 (빨강 ↔ 흰색, 350ms)
   const [blinkOn, setBlinkOn] = useState(true);
