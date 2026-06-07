@@ -66,7 +66,14 @@ export function useGeolocation(): GeolocationState {
           }
         }
 
-        // GPS가 일시적으로 speed를 빠뜨릴 때 마지막 유효값을 최대 3초 유지
+        // GPS 글리치 방지: 도로에서 물리적으로 불가능한 속도는 null로 폐기
+        // 70 m/s ≈ 252 km/h — 이를 초과하면 좌표 점프 오류로 간주
+        const MAX_SPEED_MS = 70;
+        if (finalSpeed !== null && finalSpeed > MAX_SPEED_MS) {
+          finalSpeed = null;
+        }
+
+        // GPS가 일시적으로 speed를 빠뜨릴 때 마지막 유효값을 최대 4초 유지
         // → 속도 표시가 '--' 로 순간 깜빡이는 현상 방지
         if (finalSpeed !== null) {
           lastValidSpeed.current = { value: finalSpeed, ts: now };
