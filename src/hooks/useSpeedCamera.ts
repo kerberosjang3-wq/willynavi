@@ -89,7 +89,7 @@ export function computeNearest(
       ...c,
       distanceM: Math.round(haversineDistance(from, { lat: c.lat, lng: c.lng })),
     }))
-    .filter(c => c.distanceM <= 3_500)
+    .filter(c => c.distanceM <= 1_000)
     .sort((a, b) => a.distanceM - b.distanceM);
 
   return candidates[0] ?? null;
