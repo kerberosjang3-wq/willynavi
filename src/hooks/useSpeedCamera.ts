@@ -102,28 +102,35 @@ export interface SpeedCameraFetchState {
   error: string | null;
 }
 
-const POLL_INTERVAL_MS  = 8_000;  // 8초 주기 (기존 10초)
-const SEARCH_RADIUS_M   = 3_500;  // API 검색 반경
-const FORWARD_OFFSET_M  = 1_500;  // 진행방향 오프셋 → 전방 유효 커버 5km
+const SEARCH_RADIUS_M  = 3_500;  // API 검색 반경
+const FORWARD_OFFSET_M = 1_500;  // 진행방향 오프셋 → 전방 유효 커버 5km
 
 // 구간단속 종료 마커(04)는 표시 불필요 — 이미 지나쳐서 진입한 상황
 const SKIP_TYPES = new Set(['04']);
 
+// 속도(km/h)에 따라 폴링 간격 조정 — 고속일수록 더 자주 갱신
+function pollIntervalMs(speedKmh: number | null): number {
+  if (speedKmh !== null && speedKmh >= 80) return 5_000;  // 고속도로
+  if (speedKmh !== null && speedKmh >= 40) return 7_000;  // 일반도로
+  return 10_000;                                           // 저속·정차
+}
+
 export function useSpeedCameras(position: GPSPosition | null): SpeedCameraFetchState {
-  const posRef = useRef(position);
-  posRef.current = position;
+  const posRef     = useRef(position);
+  posRef.current   = position;
 
   const [state, setState] = useState<SpeedCameraFetchState>({ cameras: [], error: null });
+
+  // 두 effect에서 공유할 안정적인 fetch 함수 핸들
+  const fetchFnRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     let alive = true;
 
-    const fetchCameras = async () => {
+    const doFetch = async () => {
       const pos = posRef.current;
       if (!pos) return;
 
-      // heading이 유효하면 검색 중심을 전방 1.5km로 오프셋
-      // → 유효 전방 커버리지: 1.5km + 3.5km = 5km
       const heading = pos.heading;
       const searchOrigin =
         heading !== null && !isNaN(heading)
@@ -139,7 +146,6 @@ export function useSpeedCameras(position: GPSPosition | null): SpeedCameraFetchS
 
         const res = await fetch(`/api/speed-cameras?${params}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
         const json = await res.json();
 
         // body 는 배열이거나 단일 객체일 수 있음
@@ -167,10 +173,39 @@ export function useSpeedCameras(position: GPSPosition | null): SpeedCameraFetchS
       }
     };
 
-    fetchCameras();
-    const timer = setInterval(fetchCameras, POLL_INTERVAL_MS);
-    return () => { alive = false; clearInterval(timer); };
+    fetchFnRef.current = doFetch;
+
+    // 초기 fetch + 동적 폴링: 5초마다 현재 속도로 interval 재조정
+    doFetch();
+    let currentInterval = 10_000;
+    let timer = setInterval(doFetch, currentInterval);
+
+    const watcher = setInterval(() => {
+      const spd = posRef.current?.speed;
+      const next = pollIntervalMs(spd != null ? spd * 3.6 : null);
+      if (next !== currentInterval) {
+        clearInterval(timer);
+        currentInterval = next;
+        timer = setInterval(doFetch, currentInterval);
+      }
+    }, 5_000);
+
+    return () => {
+      alive = false;
+      fetchFnRef.current = null;
+      clearInterval(timer);
+      clearInterval(watcher);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // GPS 첫 신호 수신 시 즉시 fetch (mount 시 GPS 없어서 초기 fetch가 건너뛰어진 경우 보완)
+  const prevHadPos = useRef(!!position);
+  useEffect(() => {
+    if (position && !prevHadPos.current) {
+      prevHadPos.current = true;
+      fetchFnRef.current?.();
+    }
+  }, [position]);
 
   return state;
 }
